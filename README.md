@@ -1,13 +1,13 @@
 # Report Middleware
 
-Natural-language analytics to SQL with a schema-aware LLM parser, deterministic SQLAlchemy builder, and acceptance tests.
+Natural-language analytics to SQL with a schema-aware LLM parser, deterministic SQLAlchemy builder, interactive chart generation, and acceptance tests.
 
 ## Overview
-- Flow: NL question → Intent JSON → Validation/Disambiguation → SQLAlchemy (Select + params) → SQLite execution → JSON results.
+- Flow: NL question → Intent JSON → Validation/Disambiguation → SQLAlchemy (Select + params) → SQLite execution → JSON results + Interactive charts.
 - Sources of truth:
   - `config_store/tenant1.json` (semantic model: metrics, dimensions, date ranges)
   - `config_store/tenant1_db_schema.json` (database schema snapshot)
-- Key guarantees: deterministic SQL generation, parameterized queries, robust tests.
+- Key guarantees: deterministic SQL generation, parameterized queries, automatic chart generation, robust tests.
 
 ## Prerequisites
 - Python 3.11+ (project tested on 3.13)
@@ -18,7 +18,7 @@ Natural-language analytics to SQL with a schema-aware LLM parser, deterministic 
 # From repo root
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-pip install openai python-dotenv sqlalchemy pytest pypdf
+pip install openai python-dotenv sqlalchemy pytest pypdf "plotly[express]" kaleido numpy pandas
 
 # Optional: verify OpenAI key (returns model list or fails fast)
 # .\.venv\Scripts\python.exe .\nlp\check_openai_key.py
@@ -42,6 +42,7 @@ pip install openai python-dotenv sqlalchemy pytest pypdf
   - Resolved dates
   - Compiled SQL (for visibility)
   - `last_query_results.json` with query results
+  - `last_query_chart.html` with interactive Plotly chart (KPI/line/bar inferred from query type)
 
 ## Bulk run from test cases
 ```powershell

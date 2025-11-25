@@ -1,37 +1,30 @@
 [
   {
-    "month": "2025-05",
-    "group_col": "",
-    "metric": 10748059.6
+    "group_col": "United States",
+    "metric": 125611301.3
   },
   {
-    "month": "2025-06",
-    "group_col": "",
-    "metric": 27439739.7
+    "group_col": "Germany",
+    "metric": 119835356.1
   },
   {
-    "month": "2025-07",
-    "group_col": "",
-    "metric": 47788874.1
+    "group_col": "United Kingdom",
+    "metric": 80857891.3
   },
   {
-    "month": "2025-08",
-    "group_col": "",
-    "metric": 23872435.0
+    "group_col": "India",
+    "metric": 42602602.5
   },
   {
-    "month": "2025-09",
-    "group_col": "",
-    "metric": 34072859.7
+    "group_col": "Canada",
+    "metric": 35486627.1
   },
   {
-    "month": "2025-10",
-    "group_col": "",
-    "metric": 35120741.7
+    "group_col": "Singapore",
+    "metric": 24918080.4
   },
   {
-    "month": "2025-11",
-    "group_col": "",
-    "metric": 26472484.7
+    "group_col": "Australia",
+    "metric": 14518640.8
   }
 ]

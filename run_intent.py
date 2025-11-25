@@ -115,6 +115,20 @@ def main():
         out_file = Path('last_query_results.json')
         out_file.write_text(json.dumps(rows, indent=2, ensure_ascii=False), encoding='utf-8')
         print(f"\nWrote {len(rows)} rows to {out_file}")
+        
+        # Generate chart if chart module available
+        try:
+            from chart.chart_builder import build_chart
+            chart_info = build_chart(
+                intent=validated,
+                results=rows,
+                output_path='last_query_chart.html',
+                include_base64=False,
+            )
+            print(f"Chart generated: {chart_info['chart_type']} → {chart_info['html_path']}")
+        except Exception as chart_exc:
+            print(f"Chart generation skipped: {chart_exc}")
+        
         conn.close()
     except Exception as exc:
         print(f"Query execution error: {exc}")

@@ -3,9 +3,9 @@
 This document summarizes the architecture, components, workflows, and the major issues we fixed across the project. It complements the implementation notes and test coverage.
 
 ## Architecture Overview
-- Goal: NL → Intent JSON → Validation/Disambiguation → SQLAlchemy builder → DB execution → JSON result.
+- Goal: NL → Intent JSON → Validation/Disambiguation → SQLAlchemy builder → DB execution → JSON result + Interactive charts.
 - Source-of-truth: `config_store/tenant1.json` (semantic model) and `config_store/tenant1_db_schema.json` (database schema snapshot).
-- Reliability: SQLAlchemy Core, parameterized queries, schema-aware joins, acceptance tests.
+- Reliability: SQLAlchemy Core, parameterized queries, schema-aware joins, automatic chart generation, acceptance tests.
 
 ## Components
 
@@ -40,8 +40,17 @@ This document summarizes the architecture, components, workflows, and the major 
     - Prefer declared FKs, then inferred FKs, then heuristics for joins
   - Supports strategies: summary, trend (`group_by = month`), group_by dimension.
 
+- `chart/chart_builder.py`
+  - Interactive chart generation using Plotly.
+  - Infers chart type from intent structure:
+    - Summary (no group_by) → KPI card
+    - Trend (group_by='month') → Line chart
+    - Group_by dimension → Bar chart
+  - Generates standalone HTML files with interactive charts.
+  - Optional base64 encoding for API responses.
+
 - `run_intent.py`
-  - CLI: parse with LLM → disambiguate → validate → build SQL → execute against `enhanced_sales.db` → write `last_query_results.json`.
+  - CLI: parse with LLM → disambiguate → validate → build SQL → execute against `enhanced_sales.db` → write `last_query_results.json` + `last_query_chart.html`.
 
 - `scripts/`
   - `extract_db_schema.py`: Extracts DB schema to JSON snapshot.
@@ -51,8 +60,8 @@ This document summarizes the architecture, components, workflows, and the major 
   - `revenue_by_product.py`: Example query runner.
 
 - `tests/`
-  - Unit: validator, date resolver, LLM-validator flow, builder.
-  - Acceptance: schema presence, parser few-shots, builder contract, and basic executions.
+  - Unit: validator, date resolver, LLM-validator flow, builder, chart inference and generation.
+  - Acceptance: schema presence, parser few-shots, builder contract, basic executions, and chart generation integration.
 
 ## Major Issues Fixed
 
@@ -86,6 +95,7 @@ This document summarizes the architecture, components, workflows, and the major 
   ```powershell
   .\.venv\Scripts\python.exe .\run_intent.py -q "revenue from EMEA region for last 12 months"
   ```
+  - Outputs: `last_query_results.json` (data) + `last_query_chart.html` (interactive Plotly chart)
 
 - Bulk run
   ```powershell
@@ -98,10 +108,11 @@ This document summarizes the architecture, components, workflows, and the major 
   ```
 
 ## Test Status
-- Full suite: 23/23 passed.
+- Full suite: 33/33 passed (23 original + 10 chart tests).
 - Bulk run: 25/25 executed, 0 failures; a few legitimate clarifications remain (forward-looking ARR, specific quarters, unmapped hierarchy dimension, growth-rate).
 
 ## Next Steps
 - Add optional feature flags for quarters/YTD and forward-looking projections.
 - Extend metric catalog (growth rate, churned ARR, new logos) with definitions and tests.
 - Consider a ranking/limit layer in the response semantics for "Top N" outputs.
+- Expand chart types (scatter for correlations, heatmaps for multi-dimensional data).
