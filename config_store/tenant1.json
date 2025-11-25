@@ -1,0 +1,36 @@
+﻿{
+  "fact_table": "fact_sales_pipeline",
+  "date_column": "sale_date",
+  "dimensions": {
+    "customer_name": "customer_name",
+    "industry": "industry",
+    "customer_tier": "customer_tier",
+    "product_name": "product_name",
+    "product_category": "product_category",
+    "deal_status": "deal_status",
+    "pipeline_stage": "pipeline_stage",
+    "region": "country",
+    "geo_cluster": "geo_cluster",
+    "sales_rep": "rep_name",
+    "channel": "channel_name",
+    "stage_category": "stage_category",
+    "contract_type": "contract_type"
+  },
+  "metrics": {
+    "revenue": "net_revenue",
+    "arr": "arr",
+    "acv": "acv",
+    "gross_margin": "gross_margin",
+    "avg_discount": "discount_rate",
+    "pipeline_value": "pipeline_value",
+    "deal_count": "COUNT(*)"
+  },
+  "allowed_operations": ["sum", "avg", "count"],
+  "date_ranges": {
+    "last_12_months": 365,
+    "last_6_months": 182,
+    "last_3_months": 90,
+    "last_24_months": 730,
+    "last_month": 30
+  }
+}

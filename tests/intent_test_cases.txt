@@ -1,0 +1,25 @@
+Total revenue for last 12 months
+Monthly revenue by product for last 12 months
+Monthly net_revenue by region for last 12 months
+Revenue from EMEA region for last 6 months
+Most revenue generating region for last year
+Monthly revenue trend for product 'Stratos ERP' for last 6 months
+Revenue by sales rep for the last quarter
+Top 5 customers by revenue for last year
+Number of deals in pipeline_stage 'closed_won' in the last month
+Average ACV by sales rep for last 12 months
+Pipeline value by region for current quarter
+Renewal ARR for next 6 months by customer
+Revenue from sales rep Helena Gomez for last 6 months
+Revenue by channel for the last 3 months
+Monthly revenue for sales person Carlos Martinez for last 6 months
+Compare revenue this quarter vs last quarter by region
+Year-to-date revenue by product
+Revenue for customer 'Acme Corp' for the last 2 years
+Median deal size by sales rep for last year
+Count of new logos in the last 12 months
+Churned ARR for last 12 months by customer
+Revenue for Q1 2024 by product
+Month over month percentage change in revenue for last 6 months
+Top 3 products by growth rate in last 12 months
+Revenue for accounts in 'Enterprise' account_hierarchy for last 6 months

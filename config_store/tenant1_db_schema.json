@@ -1,0 +1,860 @@
+{
+  "database": "enhanced_sales.db",
+  "tables": {
+    "dim_account_hierarchy": {
+      "table": "dim_account_hierarchy",
+      "columns": [
+        {
+          "name": "parent_account_id",
+          "type": "INTEGER",
+          "notnull": false,
+          "default": null,
+          "pk": true
+        },
+        {
+          "name": "parent_account_name",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "segment",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "global_region",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        }
+      ],
+      "primary_key": [
+        "parent_account_id"
+      ],
+      "declared_foreign_keys": []
+    },
+    "dim_channel": {
+      "table": "dim_channel",
+      "columns": [
+        {
+          "name": "channel_id",
+          "type": "INTEGER",
+          "notnull": false,
+          "default": null,
+          "pk": true
+        },
+        {
+          "name": "channel_name",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "channel_type",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "is_digital",
+          "type": "INTEGER",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        }
+      ],
+      "primary_key": [
+        "channel_id"
+      ],
+      "declared_foreign_keys": [],
+      "inferred_foreign_keys": [
+        {
+          "column": "channel_id",
+          "ref_table": "dim_channel",
+          "ref_column": "channel_id",
+          "source": "inferred"
+        }
+      ]
+    },
+    "dim_customer": {
+      "table": "dim_customer",
+      "columns": [
+        {
+          "name": "customer_id",
+          "type": "INTEGER",
+          "notnull": false,
+          "default": null,
+          "pk": true
+        },
+        {
+          "name": "customer_name",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "industry",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "customer_tier",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "lifecycle_stage",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "parent_customer_id",
+          "type": "INTEGER",
+          "notnull": false,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "hq_region_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "size_bucket",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "is_enterprise",
+          "type": "INTEGER",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        }
+      ],
+      "primary_key": [
+        "customer_id"
+      ],
+      "declared_foreign_keys": [
+        {
+          "column": "hq_region_id",
+          "ref_table": "dim_region",
+          "ref_column": "region_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE",
+          "source": "declared"
+        },
+        {
+          "column": "parent_customer_id",
+          "ref_table": "dim_account_hierarchy",
+          "ref_column": "parent_account_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE",
+          "source": "declared"
+        }
+      ],
+      "inferred_foreign_keys": [
+        {
+          "column": "customer_id",
+          "ref_table": "dim_customer",
+          "ref_column": "customer_id",
+          "source": "inferred"
+        }
+      ]
+    },
+    "dim_date": {
+      "table": "dim_date",
+      "columns": [
+        {
+          "name": "date_key",
+          "type": "TEXT",
+          "notnull": false,
+          "default": null,
+          "pk": true
+        },
+        {
+          "name": "calendar_date",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "year",
+          "type": "INTEGER",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "month",
+          "type": "INTEGER",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "month_name",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "quarter",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "week",
+          "type": "INTEGER",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "day_of_week",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "fiscal_year",
+          "type": "INTEGER",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "fiscal_quarter",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "is_fiscal_year_start",
+          "type": "INTEGER",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        }
+      ],
+      "primary_key": [
+        "date_key"
+      ],
+      "declared_foreign_keys": []
+    },
+    "dim_pipeline_stage": {
+      "table": "dim_pipeline_stage",
+      "columns": [
+        {
+          "name": "stage_id",
+          "type": "INTEGER",
+          "notnull": false,
+          "default": null,
+          "pk": true
+        },
+        {
+          "name": "stage_name",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "stage_order",
+          "type": "INTEGER",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "stage_category",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        }
+      ],
+      "primary_key": [
+        "stage_id"
+      ],
+      "declared_foreign_keys": []
+    },
+    "dim_product": {
+      "table": "dim_product",
+      "columns": [
+        {
+          "name": "product_id",
+          "type": "INTEGER",
+          "notnull": false,
+          "default": null,
+          "pk": true
+        },
+        {
+          "name": "product_name",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "category",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "segment",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "launch_date",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "lifecycle_status",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "sku",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "is_subscription",
+          "type": "INTEGER",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        }
+      ],
+      "primary_key": [
+        "product_id"
+      ],
+      "declared_foreign_keys": [],
+      "inferred_foreign_keys": [
+        {
+          "column": "product_id",
+          "ref_table": "dim_product",
+          "ref_column": "product_id",
+          "source": "inferred"
+        }
+      ]
+    },
+    "dim_region": {
+      "table": "dim_region",
+      "columns": [
+        {
+          "name": "region_id",
+          "type": "INTEGER",
+          "notnull": false,
+          "default": null,
+          "pk": true
+        },
+        {
+          "name": "country",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "state_province",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "geo_cluster",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "currency_default",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "sales_area",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        }
+      ],
+      "primary_key": [
+        "region_id"
+      ],
+      "declared_foreign_keys": [],
+      "inferred_foreign_keys": [
+        {
+          "column": "region_id",
+          "ref_table": "dim_region",
+          "ref_column": "region_id",
+          "source": "inferred"
+        }
+      ]
+    },
+    "dim_sales_rep": {
+      "table": "dim_sales_rep",
+      "columns": [
+        {
+          "name": "sales_rep_id",
+          "type": "INTEGER",
+          "notnull": false,
+          "default": null,
+          "pk": true
+        },
+        {
+          "name": "rep_name",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "team",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "manager",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "quota",
+          "type": "REAL",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "territory_region_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "channel_specialty",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        }
+      ],
+      "primary_key": [
+        "sales_rep_id"
+      ],
+      "declared_foreign_keys": [
+        {
+          "column": "territory_region_id",
+          "ref_table": "dim_region",
+          "ref_column": "region_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE",
+          "source": "declared"
+        }
+      ],
+      "inferred_foreign_keys": [
+        {
+          "column": "sales_rep_id",
+          "ref_table": "dim_sales_rep",
+          "ref_column": "sales_rep_id",
+          "source": "inferred"
+        }
+      ]
+    },
+    "fact_sales_pipeline": {
+      "table": "fact_sales_pipeline",
+      "columns": [
+        {
+          "name": "fact_id",
+          "type": "INTEGER",
+          "notnull": false,
+          "default": null,
+          "pk": true
+        },
+        {
+          "name": "deal_id",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "customer_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "product_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "region_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "sales_rep_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "channel_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "stage_id",
+          "type": "INTEGER",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "parent_account_id",
+          "type": "INTEGER",
+          "notnull": false,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "contract_type",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "deal_status",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "pipeline_stage",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "order_date",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "sale_date",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "ship_date",
+          "type": "TEXT",
+          "notnull": false,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "created_date",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "stage_updated_date",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "renewal_date",
+          "type": "TEXT",
+          "notnull": false,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "currency",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "lead_source",
+          "type": "TEXT",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "unit_price",
+          "type": "REAL",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "quantity",
+          "type": "INTEGER",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "list_price",
+          "type": "REAL",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "discount_rate",
+          "type": "REAL",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "net_revenue",
+          "type": "REAL",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "cost",
+          "type": "REAL",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "gross_margin",
+          "type": "REAL",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "arr",
+          "type": "REAL",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "acv",
+          "type": "REAL",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "probability",
+          "type": "REAL",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "pipeline_value",
+          "type": "REAL",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "renewal_flag",
+          "type": "INTEGER",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "expansion_flag",
+          "type": "INTEGER",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        },
+        {
+          "name": "return_flag",
+          "type": "INTEGER",
+          "notnull": true,
+          "default": null,
+          "pk": false
+        }
+      ],
+      "primary_key": [
+        "fact_id"
+      ],
+      "declared_foreign_keys": [
+        {
+          "column": "parent_account_id",
+          "ref_table": "dim_account_hierarchy",
+          "ref_column": "parent_account_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE",
+          "source": "declared"
+        },
+        {
+          "column": "stage_id",
+          "ref_table": "dim_pipeline_stage",
+          "ref_column": "stage_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE",
+          "source": "declared"
+        },
+        {
+          "column": "channel_id",
+          "ref_table": "dim_channel",
+          "ref_column": "channel_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE",
+          "source": "declared"
+        },
+        {
+          "column": "sales_rep_id",
+          "ref_table": "dim_sales_rep",
+          "ref_column": "sales_rep_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE",
+          "source": "declared"
+        },
+        {
+          "column": "region_id",
+          "ref_table": "dim_region",
+          "ref_column": "region_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE",
+          "source": "declared"
+        },
+        {
+          "column": "product_id",
+          "ref_table": "dim_product",
+          "ref_column": "product_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE",
+          "source": "declared"
+        },
+        {
+          "column": "customer_id",
+          "ref_table": "dim_customer",
+          "ref_column": "customer_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE",
+          "source": "declared"
+        }
+      ],
+      "inferred_foreign_keys": [
+        {
+          "column": "customer_id",
+          "ref_table": "dim_customer",
+          "ref_column": "customer_id",
+          "source": "inferred"
+        },
+        {
+          "column": "product_id",
+          "ref_table": "dim_product",
+          "ref_column": "product_id",
+          "source": "inferred"
+        },
+        {
+          "column": "region_id",
+          "ref_table": "dim_region",
+          "ref_column": "region_id",
+          "source": "inferred"
+        },
+        {
+          "column": "sales_rep_id",
+          "ref_table": "dim_sales_rep",
+          "ref_column": "sales_rep_id",
+          "source": "inferred"
+        },
+        {
+          "column": "channel_id",
+          "ref_table": "dim_channel",
+          "ref_column": "channel_id",
+          "source": "inferred"
+        }
+      ]
+    }
+  }
+}
