@@ -61,10 +61,36 @@ def api_query(payload: Dict[str, Any]):
         parser_used = "llm"
     except RuntimeError as exc:
         msg = str(exc)
+        # If LLM asks for clarification and the client did provide one, attempt a heuristic fallback
         if msg.lower().startswith("llm needs clarification:"):
-            ask = msg.split(":", 1)[1].strip() if ":" in msg else msg
-            return {"clarification_required": True, "message": ask}
-        return JSONResponse({"error": msg}, status_code=400)
+            if clarification:
+                # Very lightweight heuristic: map common phrases to a valid intent without modifiers
+                lowered = (question or "").lower()
+                metric = "revenue" if "revenue" in lowered else next(iter(config.get("metrics", {}).keys()), "revenue")
+                group_by = None
+                if "sales person" in lowered or "sales_rep" in lowered or "sales person" in (clarification or "").lower():
+                    group_by = "sales_rep" if "sales_rep" in (config.get("dimensions") or {}) else None
+                if "region" in lowered or "emea" in lowered or "amer" in lowered or "apac" in lowered:
+                    group_by = "region"
+                # Prefer month trend if explicitly asked
+                if "monthly" in lowered or "month" in lowered:
+                    group_by = "month"
+                # Default range: last_3_months if not present
+                date_range = "last_3_months"
+                # If config supports last_month/this_month, pick last_6_months for broader view when asking averages
+                if "last month" in lowered:
+                    date_range = "last_month"
+                elif "last 6 months" in lowered:
+                    date_range = "last_6_months"
+                elif "last 12 months" in lowered or "last year" in lowered:
+                    date_range = "last_12_months"
+                intent = {"metric": metric, "filters": {}, "group_by": group_by, "date_range": date_range}
+                parser_used = "heuristic"
+            else:
+                ask = msg.split(":", 1)[1].strip() if ":" in msg else msg
+                return {"clarification_required": True, "message": ask}
+        else:
+            return JSONResponse({"error": msg}, status_code=400)
     except Exception as exc:  # missing key, model, etc.
         return JSONResponse({"error": f"Parser unavailable: {exc}"}, status_code=500)
 
