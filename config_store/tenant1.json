@@ -1,4 +1,4 @@
-﻿{
+{
   "fact_table": "fact_sales_pipeline",
   "date_column": "sale_date",
   "dimensions": {
@@ -23,9 +23,25 @@
     "gross_margin": "gross_margin",
     "avg_discount": "discount_rate",
     "pipeline_value": "pipeline_value",
-    "deal_count": "COUNT(*)"
+    "deal_count": "COUNT(*)",
+    "revenue_per_customer": "SUM(net_revenue) / NULLIF(COUNT(DISTINCT customer_id), 0)",
+    "total_revenue_per_customer": "SUM(net_revenue) / NULLIF(COUNT(DISTINCT customer_id), 0)",
+    "gross_margin_per_customer": "SUM(gross_margin) / NULLIF(COUNT(DISTINCT customer_id), 0)",
+    "acv_per_customer": "SUM(acv) / NULLIF(COUNT(DISTINCT customer_id), 0)",
+    "revenue_per_account": "SUM(net_revenue) / NULLIF(COUNT(DISTINCT customer_id), 0)",
+    "revenue_per_deal": "SUM(net_revenue) / NULLIF(COUNT(*), 0)",
+    "arr_per_logo": "SUM(arr) / NULLIF(COUNT(DISTINCT customer_id), 0)",
+    "acv_per_deal": "SUM(acv) / NULLIF(COUNT(*), 0)",
+    "revenue_per_user": "SUM(net_revenue) / NULLIF(COUNT(DISTINCT customer_id), 0)",
+    "gross_margin_per_companie": "SUM(gross_margin) / NULLIF(COUNT(*), 0)",
+    "arr_per_deal": "SUM(arr) / NULLIF(COUNT(*), 0)",
+    "gross_margin_per_deal": "SUM(gross_margin) / NULLIF(COUNT(*), 0)"
   },
-  "allowed_operations": ["sum", "avg", "count"],
+  "allowed_operations": [
+    "sum",
+    "avg",
+    "count"
+  ],
   "date_ranges": {
     "last_12_months": 365,
     "last_6_months": 182,

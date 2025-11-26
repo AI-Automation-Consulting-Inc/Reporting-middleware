@@ -73,9 +73,12 @@ SYSTEM_PROMPT = dedent(
       * "last year" / "past year" → use last_12_months
       * "last 2 years" → use last_24_months if available, else last_12_months
       * Ignore ranking modifiers like "Top 5", "Top 3" — just return the group_by and metric
-      * For unsupported metrics like "median", "growth rate", "new logos", "churned" — use the closest available metric (revenue, deal_count)
       * "current quarter", "this quarter", "year-to-date" → map to last_3_months or last_12_months
-    - Only request clarification when the question is genuinely ambiguous or impossible with current schema.        Few-shot examples (INPUT -> OUTPUT):
+    - If a metric is not in the available metrics list, request clarification instead of guessing.
+    - If the user requests a specific aggregation modifier (like "average revenue", "median revenue", "percentile", "mode", "stddev"), request clarification explaining that each metric has a pre-defined aggregation and cannot be changed.
+    - Only request clarification when the question is genuinely ambiguous or impossible with current schema.
+
+        Few-shot examples (INPUT -> OUTPUT):
         - Input: "monthly revenue for sales rep Carlos Martinez for last 6 months"
             Output: {"metric":"revenue","filters":{"sales_rep":"Carlos Martinez"},"group_by":"month","date_range":"last_6_months"}
 

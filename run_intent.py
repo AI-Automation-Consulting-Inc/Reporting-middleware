@@ -4,6 +4,17 @@ import sys
 from pathlib import Path
 from typing import Callable
 
+# Optional interactive clarify flow imports
+try:
+    from nlp.formula_parser import parse_nl_formula, FormulaParseError
+    from config.config_updater import add_or_update_metric
+    from nlp.intent_parser import parse_intent as heuristic_parse_intent
+except Exception:
+    parse_nl_formula = None  # type: ignore
+    FormulaParseError = Exception  # type: ignore
+    add_or_update_metric = None  # type: ignore
+    heuristic_parse_intent = None  # type: ignore
+
 
 def _load_validator():
     try:
@@ -37,6 +48,12 @@ def main():
         action="store_true",
         help="When set, abort on LLM clarification/error (LLM-only mode).",
     )
+    parser.add_argument(
+        "--clarify",
+        action="store_true",
+        help="Enable interactive clarification: accept NL formulas to add metrics and continue.",
+    )
+
     args = parser.parse_args()
 
     config = json.loads(Path("config_store/tenant1.json").read_text(encoding="utf-8-sig"))
@@ -55,9 +72,72 @@ def main():
         intent = parse_intent_with_llm(question, config)
         parser_used = "llm"
     except RuntimeError as exc:
-        # parse_intent_with_llm uses RuntimeError for both clarification and other issues
-        # Surface the message and abort (LLM-only mode)
-        raise SystemExit(f"LLM error: {exc}")
+        # LLM asked for clarification or failed. If interactive clarify is enabled, prompt user.
+        if not args.clarify:
+            raise SystemExit(f"LLM error: {exc}")
+
+        print(f"LLM needs clarification: {exc}")
+        if not (parse_nl_formula and add_or_update_metric):
+            raise SystemExit("Interactive clarify not available (missing modules). Re-run without --clarify.")
+
+        # Interactive loop: accept existing metric key or NL formula to add a new one
+        while True:
+            try:
+                user_input = input(
+                    "Enter a metric key to use, or provide a natural-language formula\n"
+                    "(e.g., 'average revenue per customer'). Type 'q' to abort: "
+                ).strip()
+            except EOFError:
+                raise SystemExit("Aborted (no input available)")
+
+            if not user_input:
+                print("Please enter a metric key or a formula, or 'q' to quit.")
+                continue
+            if user_input.lower() in ("q", "quit", "exit"):
+                raise SystemExit("Aborted by user")
+
+            chosen_metric = None
+            # If user supplied an existing metric key
+            if user_input in (config.get("metrics") or {}):
+                chosen_metric = user_input
+            else:
+                # Treat as NL formula; parse and add to config
+                try:
+                    metric_key, expr = parse_nl_formula(user_input, schema=json.loads(Path("config_store/tenant1_db_schema.json").read_text(encoding="utf-8-sig")) if Path("config_store/tenant1_db_schema.json").exists() else {}, config=config)
+                except FormulaParseError as e:
+                    print(f"Could not parse formula: {e}")
+                    continue
+                try:
+                    add_or_update_metric(metric_key, expr, path="config_store/tenant1.json")
+                    # reload config to include new metric
+                    config = json.loads(Path("config_store/tenant1.json").read_text(encoding="utf-8-sig"))
+                    print(f"Metric saved: {metric_key} := {expr}")
+                    chosen_metric = metric_key
+                except Exception as e:
+                    print(f"Failed to save metric: {e}")
+                    continue
+
+            # Prefer re-running the LLM with updated config; fallback to heuristic
+            try:
+                intent = parse_intent_with_llm(question, config)
+                # Force metric if LLM still doesn't pick it reliably
+                if intent.get("metric") != chosen_metric:
+                    intent["metric"] = chosen_metric
+                parser_used = "llm+clarify"
+                break
+            except RuntimeError as rexc:
+                print(f"LLM still needs clarification: {rexc}")
+                if not heuristic_parse_intent:
+                    # loop again for more input
+                    continue
+                try:
+                    intent = heuristic_parse_intent(question, config)
+                    intent["metric"] = chosen_metric
+                    parser_used = "heuristic+clarify"
+                    break
+                except Exception as e:
+                    print(f"Heuristic parse failed: {e}")
+                    continue
 
     # DB-backed disambiguation: prefer values found in dim_region/ dim_customer
     try:
@@ -103,8 +183,8 @@ def main():
         compiled = sel.compile(dialect=engine.dialect, compile_kwargs={"literal_binds": True})
         print('\nCompiled SQL:')
         print(str(compiled))
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[WARN] Could not print compiled SQL: {e}")
 
     # Execute and write results
     try:

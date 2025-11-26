@@ -135,18 +135,25 @@ def build_sql(intent: Dict[str, Any], config: Dict[str, Any], db_type: str = "sq
 
     # choose an aggregation expression for the requested metric
     mf = metric_formula.strip()
-    if mf.upper().startswith("COUNT("):
+    mf_upper = mf.upper()
+    if mf_upper.startswith("COUNT("):
         # handle COUNT(*) or COUNT(col)
         inner = mf[mf.find("(") + 1: mf.rfind(")")].strip()
         if inner == "*" or inner == "":
             metric_expr = func.count().label("metric")
         else:
             metric_expr = func.count(text(inner)).label("metric")
-    elif mf.upper().startswith("AVG("):
+    elif mf_upper.startswith("AVG("):
         inner = mf[mf.find("(") + 1: mf.rfind(")")].strip()
         metric_expr = func.avg(text(inner)).label("metric")
+    elif mf_upper.startswith("SUM("):
+        # already an explicit SUM expression
+        metric_expr = literal_column(mf).label("metric")
+    elif any(op in mf for op in ["+", "-", "*", "/"]) or "(" in mf:
+        # treat as a derived expression with its own aggregation(s)
+        metric_expr = literal_column(mf).label("metric")
     else:
-        # default to SUM
+        # plain column -> default to SUM
         metric_expr = func.sum(text(metric_formula)).label("metric")
 
     # Build base select depending on strategy
@@ -370,6 +377,11 @@ def build_sql(intent: Dict[str, Any], config: Dict[str, Any], db_type: str = "sq
     # the Select directly via SQLAlchemy engines or compile it with
     # literal_binds for debugging/tests).
     sel = sel.params(**params)
+
+    # Print the generated SQL (with parameter placeholders)
+    print("\n[BUILDER] Generated SQL (with placeholders):")
+    print(str(sel))
+    print("[BUILDER] Params:", params)
 
     return sel, params
 
