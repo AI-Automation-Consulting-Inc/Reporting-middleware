@@ -38,6 +38,24 @@ git add -A
 git commit -m "Update report middleware"
 git push origin main
 ```
+
+## Web UI (FastAPI + Static Page)
+
+```powershell
+# Install deps (once)
+pip install fastapi uvicorn
+
+# Run API + static UI
+uvicorn webapp.server:app --reload --port 8000
+
+# Open http://localhost:8000 in your browser
+```
+
+UI layout:
+- Top: overview of middleware and DB
+- Middle-left: interactive Plotly chart (rendered via iframe)
+- Middle-right: data table for chart rows
+- Bottom: NL query input with clarification loop
 # Report Middleware
 
 Natural-language analytics to SQL with a schema-aware LLM parser, deterministic SQLAlchemy builder, interactive chart generation, and acceptance tests.

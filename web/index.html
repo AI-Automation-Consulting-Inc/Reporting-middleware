@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Reporting Middleware</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; color: #111; }
+    header { padding: 24px; background: #0f172a; color: #f8fafc; }
+    main { padding: 20px; max-width: 1200px; margin: 0 auto; }
+    section { margin-bottom: 24px; }
+    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    @media (min-width: 900px) { .grid { grid-template-columns: 2fr 1fr; } }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; }
+    th { background: #f8fafc; }
+    .input-row { display: flex; gap: 8px; }
+    input[type="text"] { flex: 1; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; }
+    button { padding: 10px 14px; border: 0; border-radius: 6px; background: #2563eb; color: #fff; cursor: pointer; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .muted { color: #475569; }
+    iframe { width: 100%; height: 480px; border: 1px solid #e5e7eb; border-radius: 8px; }
+    .clarify { background: #fff7ed; border: 1px solid #fdba74; padding: 12px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Reporting Middleware</h1>
+    <p class="muted">Schema-aware NL → SQL with charts • SQLite demo</p>
+  </header>
+  <main>
+    <section class="card">
+      <h2>Overview</h2>
+      <p>This middleware interprets natural language queries using a schema-aware parser, validates against your tenant config, builds SQL with SQLAlchemy, executes on SQLite, and returns both rows and a suggested chart.</p>
+      <ul>
+        <li>Fact: <code>fact_sales_pipeline</code></li>
+        <li>Outputs: interactive Plotly chart, data rows</li>
+        <li>Strict mode: asks for clarification when needed</li>
+      </ul>
+    </section>
+
+    <section class="grid">
+      <div class="card">
+        <h2>Chart</h2>
+        <div id="chartBox">
+          <p class="muted">Run a query to render a chart here.</p>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Data</h2>
+        <div id="dataBox"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Ask a question</h2>
+      <div id="clarifyBox" class="clarify" style="display:none"></div>
+      <div class="input-row">
+        <input id="q" type="text" placeholder="e.g., revenue per customer by region for last 6 months" />
+        <button id="runBtn">Run</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const qEl = document.getElementById('q');
+    const runBtn = document.getElementById('runBtn');
+    const chartBox = document.getElementById('chartBox');
+    const dataBox = document.getElementById('dataBox');
+    const clarifyBox = document.getElementById('clarifyBox');
+
+    let lastQuestion = '';
+
+    async function callApi(question, clarification) {
+      const payload = { question };
+      if (clarification) payload.clarification = clarification;
+      const res = await fetch('/api/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      return res.json();
+    }
+
+    function renderRows(rows) {
+      if (!rows || rows.length === 0) { dataBox.innerHTML = '<p class="muted">No data.</p>'; return; }
+      const cols = Object.keys(rows[0]);
+      let html = '<table><thead><tr>' + cols.map(c=>`<th>${c}</th>`).join('') + '</tr></thead><tbody>';
+      for (const r of rows) {
+        html += '<tr>' + cols.map(c=>`<td>${r[c] ?? ''}</td>`).join('') + '</tr>';
+      }
+      html += '</tbody></table>';
+      dataBox.innerHTML = html;
+    }
+
+    function renderChart(htmlBase64) {
+      if (!htmlBase64) { chartBox.innerHTML = '<p class="muted">No chart available.</p>'; return; }
+      const html = atob(htmlBase64);
+      const iframe = document.createElement('iframe');
+      iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups');
+      iframe.srcdoc = html;
+      chartBox.innerHTML = '';
+      chartBox.appendChild(iframe);
+    }
+
+    async function run(question, clarification) {
+      runBtn.disabled = true;
+      try {
+        const out = await callApi(question, clarification);
+        if (out.clarification_required) {
+          clarifyBox.style.display = 'block';
+          clarifyBox.innerHTML = `
+            <div><strong>Clarification needed:</strong> ${out.message}</div>
+            <div class="input-row" style="margin-top:8px">
+              <input id="clarInput" type="text" placeholder="Type answer and press Enter" />
+              <button id="clarBtn">Send</button>
+            </div>
+          `;
+          const clarInput = document.getElementById('clarInput');
+          const clarBtn = document.getElementById('clarBtn');
+          clarInput.focus();
+          const handler = async () => {
+            const ans = clarInput.value.trim();
+            if (!ans) return;
+            clarBtn.disabled = true;
+            await run(lastQuestion, ans);
+          };
+          clarBtn.onclick = handler;
+          clarInput.onkeydown = (e)=>{ if (e.key === 'Enter') handler(); };
+          return;
+        }
+        clarifyBox.style.display = 'none';
+        renderChart(out.chart_html_base64);
+        renderRows(out.rows);
+      } catch (e) {
+        chartBox.innerHTML = `<p class=muted>Error: ${e}</p>`;
+      } finally {
+        runBtn.disabled = false;
+      }
+    }
+
+    runBtn.addEventListener('click', async ()=>{
+      const question = qEl.value.trim();
+      if (!question) return;
+      lastQuestion = question;
+      await run(question);
+    });
+
+    qEl.addEventListener('keydown', async (e)=>{
+      if (e.key === 'Enter') { runBtn.click(); }
+    });
+  </script>
+</body>
+</html>
