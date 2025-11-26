@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, timedelta
 from typing import Dict, Tuple
+import calendar
 
 
 class DateResolutionError(ValueError):
@@ -28,12 +29,25 @@ def resolve_date_range(intent: Dict, config: Dict) -> Tuple[str, str]:
     if not date_range:
         raise DateResolutionError("No date range specified.")
 
+    # Special calendar-month handling independent of config days
+    today = date.today()
+    if date_range in {"last_month", "previous_month"}:
+        year = today.year if today.month != 1 else today.year - 1
+        month = today.month - 1 or 12
+        start = date(year, month, 1)
+        end = date(year, month, calendar.monthrange(year, month)[1])
+        return start.isoformat(), end.isoformat()
+    if date_range in {"this_month", "current_month"}:
+        start = date(today.year, today.month, 1)
+        end = date(today.year, today.month, calendar.monthrange(today.year, today.month)[1])
+        return start.isoformat(), end.isoformat()
+
     config_ranges = config.get("date_ranges", {})
     days = config_ranges.get(date_range)
     if days is None:
         raise DateResolutionError(f"Unsupported date range: {date_range}")
 
-    end = date.today()
+    end = today
     start = end - timedelta(days=int(days))
     return start.isoformat(), end.isoformat()
 

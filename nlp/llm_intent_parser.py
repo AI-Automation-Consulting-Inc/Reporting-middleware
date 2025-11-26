@@ -69,8 +69,10 @@ SYSTEM_PROMPT = dedent(
     - When a token clearly maps to a region (e.g., EMEA, AMER, country names), set the `region` filter.
     - Prefer exact matches to tenant dimension names; do not normalize into other dimensions unless explicit.
     - Map semantically similar terms to available options:
-      * "last quarter" / "current quarter" → use closest available range (last_3_months)
-      * "last year" / "past year" → use last_12_months
+    * "last month" → use last_month (previous calendar month)
+    * "this month" / "current month" → use this_month (current calendar month) if available
+    * "last quarter" / "current quarter" → use closest available range (last_3_months)
+    * "last year" / "past year" → use last_12_months
       * "last 2 years" → use last_24_months if available, else last_12_months
       * Ignore ranking modifiers like "Top 5", "Top 3" — just return the group_by and metric
       * "current quarter", "this quarter", "year-to-date" → map to last_3_months or last_12_months
@@ -155,6 +157,11 @@ def parse_intent_with_llm(question: str, config: Dict[str, Any]) -> Dict[str, An
         "past 12 months": "last 12 months",
         "last 2 years": "last 24 months",
         "past 2 years": "last 24 months",
+        # Encourage date range tokenization for the model
+        "last month": "last_month",
+        "previous month": "last_month",
+        "this month": "this_month",
+        "current month": "this_month",
     }
     # sort by length descending to replace longer phrases first
     normalized = question

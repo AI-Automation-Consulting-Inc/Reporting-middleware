@@ -1,5 +1,45 @@
 # Report Middleware
 
+This project lives inside your existing repository. No separate repo or remote is required. All changes are committed and pushed to the `main` branch of the current repo.
+
+## Quick Start
+
+```powershell
+# From repo root
+& .\.venv\Scripts\Activate.ps1
+python run_intent.py --query "revenue per customer by region last 6 months" --clarify
+```
+
+Outputs are written to:
+- `last_query_results.json`
+- `last_query_chart.html`
+
+## Defining Metrics from Natural Language
+
+```powershell
+python metric_cli.py --add "gross profit / number of companies" --key gross_margin_per_company
+```
+
+## Project Structure
+
+- `create_enhanced_dummy_db.py`: Seed local SQLite with realistic data
+- `config_store/tenant1.json`: Metrics, dimensions, and settings
+- `nlp/intent_parser.py`, `nlp/llm_intent_parser.py`: Intent parsing (strict mode)
+- `nlp/formula_parser.py`: NL formula → SQL derived expressions
+- `run_intent.py`: Main CLI; generates results and charts
+- `metric_cli.py`: Add/update metrics from NL
+
+## Git
+
+This project is part of the existing repo. To publish updates:
+
+```powershell
+git add -A
+git commit -m "Update report middleware"
+git push origin main
+```
+# Report Middleware
+
 Natural-language analytics to SQL with a schema-aware LLM parser, deterministic SQLAlchemy builder, interactive chart generation, and acceptance tests.
 
 ## Overview
