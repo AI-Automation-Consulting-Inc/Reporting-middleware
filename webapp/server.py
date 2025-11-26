@@ -54,11 +54,22 @@ def api_query(payload: Dict[str, Any]):
     validate_intent, IntentValidationError = _load_validator()
 
     # Parse intent via LLM
+    # Detect common modifiers/denominators to build ephemeral expressions
+    lowered_q = question.lower()
+    ephemeral_expr: Optional[str] = None
+    # Average revenue per sales person
+    if ("average" in lowered_q or "avg" in lowered_q) and "revenue" in lowered_q and ("sales person" in lowered_q or "sales_rep" in lowered_q or "salesperson" in lowered_q):
+        # SUM(net_revenue) / COUNT(DISTINCT rep_name)
+        ephemeral_expr = "SUM(net_revenue) / NULLIF(COUNT(DISTINCT rep_name), 0)"
+
     try:
         from nlp.llm_intent_parser import parse_intent_with_llm  # type: ignore
 
         intent = parse_intent_with_llm(question, config)
         parser_used = "llm"
+        if ephemeral_expr:
+            intent["derived_expression"] = ephemeral_expr
+            intent["metric"] = intent.get("metric", "revenue")
     except RuntimeError as exc:
         msg = str(exc)
         # If LLM asks for clarification and the client did provide one, attempt a heuristic fallback
@@ -85,6 +96,8 @@ def api_query(payload: Dict[str, Any]):
                 elif "last 12 months" in lowered or "last year" in lowered:
                     date_range = "last_12_months"
                 intent = {"metric": metric, "filters": {}, "group_by": group_by, "date_range": date_range}
+                if ephemeral_expr:
+                    intent["derived_expression"] = ephemeral_expr
                 parser_used = "heuristic"
             else:
                 ask = msg.split(":", 1)[1].strip() if ":" in msg else msg

@@ -98,10 +98,15 @@ def build_sql(intent: Dict[str, Any], config: Dict[str, Any], db_type: str = "sq
 
     strategy = _determine_strategy(intent)
 
+    # Support ephemeral derived expressions without changing config
+    derived_expr = intent.get("derived_expression")
     metric_name = intent["metric"]
-    if metric_name not in config.get("metrics", {}):
-        raise SQLBuilderError(f"Unknown metric: {metric_name}")
-    metric_formula = config["metrics"][metric_name]
+    if derived_expr:
+        metric_formula = derived_expr
+    else:
+        if metric_name not in config.get("metrics", {}):
+            raise SQLBuilderError(f"Unknown metric: {metric_name}")
+        metric_formula = config["metrics"][metric_name]
 
     fact_table = config["fact_table"]
     date_column = config["date_column"]
@@ -136,7 +141,10 @@ def build_sql(intent: Dict[str, Any], config: Dict[str, Any], db_type: str = "sq
     # choose an aggregation expression for the requested metric
     mf = metric_formula.strip()
     mf_upper = mf.upper()
-    if mf_upper.startswith("COUNT("):
+    if derived_expr:
+        # Use provided derived expression verbatim, avoid double-wrapping
+        metric_expr = literal_column(derived_expr).label("metric")
+    elif mf_upper.startswith("COUNT("):
         # handle COUNT(*) or COUNT(col)
         inner = mf[mf.find("(") + 1: mf.rfind(")")].strip()
         if inner == "*" or inner == "":
