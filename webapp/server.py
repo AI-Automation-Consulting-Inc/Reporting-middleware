@@ -59,8 +59,8 @@ def api_query(payload: Dict[str, Any]):
     ephemeral_expr: Optional[str] = None
     # Average revenue per sales person
     if ("average" in lowered_q or "avg" in lowered_q) and "revenue" in lowered_q and ("sales person" in lowered_q or "sales_rep" in lowered_q or "salesperson" in lowered_q):
-        # SUM(net_revenue) / COUNT(DISTINCT rep_name)
-        ephemeral_expr = "SUM(net_revenue) / NULLIF(COUNT(DISTINCT rep_name), 0)"
+        # Qualify columns to fact table alias used by builder (f.)
+        ephemeral_expr = "SUM(f.net_revenue) / NULLIF(COUNT(DISTINCT f.rep_name), 0)"
 
     try:
         from nlp.llm_intent_parser import parse_intent_with_llm  # type: ignore
