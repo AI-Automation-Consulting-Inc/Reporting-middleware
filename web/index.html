@@ -92,7 +92,17 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      return res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (e) {
+        throw new Error(`Server returned non-JSON response (status ${res.status}).`);
+      }
+      if (!res.ok) {
+        const msg = (data && data.error) ? data.error : `Request failed with status ${res.status}`;
+        throw new Error(msg);
+      }
+      return data;
     }
 
     function renderRows(rows) {
@@ -146,7 +156,10 @@
         renderChart(out.chart_html_base64);
         renderRows(out.rows);
       } catch (e) {
-        chartBox.innerHTML = `<p class=muted>Error: ${e}</p>`;
+        const msg = (e && e.message) ? e.message : String(e);
+        chartBox.innerHTML = `<div class="card"><h3>Error</h3><p class="muted">${msg}</p></div>`;
+        dataBox.innerHTML = '';
+        clarifyBox.style.display = 'none';
       } finally {
         runBtn.disabled = false;
       }
