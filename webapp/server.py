@@ -102,13 +102,13 @@ def api_query(payload: Dict[str, Any]):
         derived_expr = intent.get("derived_expression", "")
         if derived_expr:
             # Replace dimension table columns with fact table ID columns
+            # Order matters - check longer patterns first to avoid partial replacements
             corrections = {
                 "f.customer_name": "f.customer_id",
                 "f.product_name": "f.product_id",
                 "f.rep_name": "f.sales_rep_id",
-                "f.sales_rep": "f.sales_rep_id",
                 "f.geo_cluster": "f.region_id",
-                "f.region": "f.region_id",
+                "COUNT(DISTINCT f.region)": "COUNT(DISTINCT f.region_id)",
             }
             for wrong, correct in corrections.items():
                 if wrong in derived_expr:
