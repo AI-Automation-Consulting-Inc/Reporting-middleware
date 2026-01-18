@@ -945,6 +945,10 @@
     qEl.addEventListener('keydown', async (e) => {
       if (e.key === 'Enter') { runBtn.click(); }
     });
+    
+    // Load database info and samples on page load
+    loadDatabaseInfo();
+    loadSampleQueries();
   </script>
 </body>
 </html>
