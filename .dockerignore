@@ -1,0 +1,67 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+!README.md
+
+# Database (will be regenerated in container)
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated files
+last_query_*.html
+last_query_*.json
+last_query_*.txt
+results*.jsonl
+
+# Tests
+tests/
+pytest.ini
+.pytest_cache/
+
+# Scripts (not needed in production)
+scripts/bulk_run_intents.py
+scripts/bulk_run_intents_from_file.py
+scripts/debug_build_sql.py
+scripts/extract_prd_pdf.py
+scripts/inspect_dim_product.py
+scripts/revenue_by_product.py
+scripts/run_intent_llm.ps1
+scripts/run_intent_local.ps1
+
+# Design docs
+design/

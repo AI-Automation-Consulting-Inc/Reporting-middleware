@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  report-middleware:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: report-middleware
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_INTENT_MODEL=${OPENAI_INTENT_MODEL:-gpt-4o-mini}
+      - DUMMY_DB_NAME=${DUMMY_DB_NAME:-enhanced_sales.db}
+    volumes:
+      # Persist database
+      - ./data:/app/data
+      # Persist config if needed
+      - ./config_store:/app/config_store
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - middleware-network
+
+networks:
+  middleware-network:
+    driver: bridge
