@@ -943,8 +943,14 @@
     });
     
     // Load database info and samples on page load
-    loadDatabaseInfo();
-    loadSampleQueries();
+    console.log('About to load database info and sample queries...');
+    try {
+      loadDatabaseInfo();
+      loadSampleQueries();
+      console.log('Functions called successfully');
+    } catch(e) {
+      console.error('Error calling functions:', e);
+    }
   </script>
 </body>
 </html>

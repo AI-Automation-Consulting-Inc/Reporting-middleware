@@ -5,8 +5,9 @@ from pathlib import Path
 from typing import Optional, Dict, Any, List
 
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 
 
 app = FastAPI(title="Reporting Middleware UI API")
@@ -348,6 +349,21 @@ def api_sample_queries():
     }
 
 
+@app.get("/")
+def serve_index():
+    """Serve index.html with no-cache headers"""
+    static_dir = Path(__file__).resolve().parent.parent / "web"
+    index_file = static_dir / "index.html"
+    return FileResponse(
+        index_file,
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+    )
+
+
 # Serve static UI from /web
 static_dir = Path(__file__).resolve().parent.parent / "web"
-app.mount("/", StaticFiles(directory=str(static_dir), html=True), name="static")
+app.mount("/assets", StaticFiles(directory=str(static_dir)), name="static")
