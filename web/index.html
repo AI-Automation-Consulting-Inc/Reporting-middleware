@@ -782,10 +782,6 @@
       lastQuestion = query;
       run(query);
     };
-    
-    // Load database info and samples on page load
-    loadDatabaseInfo();
-    loadSampleQueries();
 
     async function callApi(question, clarification) {
       const payload = { question };
