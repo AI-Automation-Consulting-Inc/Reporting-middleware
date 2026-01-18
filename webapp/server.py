@@ -215,6 +215,113 @@ def api_query(payload: Dict[str, Any]):
     }
 
 
+@app.get("/api/database-info")
+def api_database_info():
+    """Return database schema information for UI display"""
+    try:
+        from sqlalchemy import create_engine, inspect, text
+        import os
+        
+        db_name = os.environ.get("DUMMY_DB_NAME", "enhanced_sales.db")
+        db_path = Path(db_name)
+        
+        if not db_path.exists():
+            return JSONResponse({"error": "Database not found"}, status_code=404)
+        
+        engine = create_engine(f"sqlite:///{db_name}")
+        inspector = inspect(engine)
+        
+        # Get table information
+        tables_info = []
+        total_rows = 0
+        
+        with engine.connect() as conn:
+            for table_name in inspector.get_table_names():
+                columns = inspector.get_columns(table_name)
+                
+                # Get row count
+                result = conn.execute(text(f"SELECT COUNT(*) FROM {table_name}"))
+                row_count = result.scalar()
+                total_rows += row_count
+                
+                # Get sample data for date ranges if it's fact table
+                date_info = None
+                if table_name == "fact_sales_pipeline":
+                    result = conn.execute(text(
+                        "SELECT MIN(sale_date) as min_date, MAX(sale_date) as max_date FROM fact_sales_pipeline"
+                    ))
+                    row = result.fetchone()
+                    if row:
+                        date_info = {"min_date": row[0], "max_date": row[1]}
+                
+                tables_info.append({
+                    "name": table_name,
+                    "row_count": row_count,
+                    "columns": [col["name"] for col in columns],
+                    "date_info": date_info
+                })
+        
+        # Load config for metrics and dimensions
+        config = _load_config()
+        
+        return {
+            "database": db_name,
+            "total_rows": total_rows,
+            "tables": tables_info,
+            "metrics": config.get("metrics", {}),
+            "dimensions": config.get("dimensions", {}),
+            "date_ranges": config.get("date_ranges", {})
+        }
+    
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.get("/api/sample-queries")
+def api_sample_queries():
+    """Return sample queries for users to try"""
+    return {
+        "categories": [
+            {
+                "category": "Revenue Analysis",
+                "queries": [
+                    "revenue from EMEA region last 6 months",
+                    "total revenue by region",
+                    "monthly revenue trend for last year",
+                    "revenue by product category"
+                ]
+            },
+            {
+                "category": "Sales Performance",
+                "queries": [
+                    "top 3 sales person from EMEA region",
+                    "deal count by sales rep",
+                    "average revenue per sales person by region",
+                    "sales rep performance last quarter"
+                ]
+            },
+            {
+                "category": "Deal Analysis",
+                "queries": [
+                    "deal count by product category",
+                    "average deal size by region",
+                    "pipeline by stage",
+                    "conversion rate by sales rep"
+                ]
+            },
+            {
+                "category": "Time-based Trends",
+                "queries": [
+                    "monthly revenue trend",
+                    "quarterly deal count",
+                    "year over year growth",
+                    "weekly sales activity"
+                ]
+            }
+        ]
+    }
+
+
 # Serve static UI from /web
 static_dir = Path(__file__).resolve().parent.parent / "web"
 app.mount("/", StaticFiles(directory=str(static_dir), html=True), name="static")

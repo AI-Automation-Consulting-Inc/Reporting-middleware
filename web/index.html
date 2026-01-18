@@ -378,6 +378,11 @@
       color: #155724;
     }
     
+    .badge-primary {
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+    
     /* Error State */
     .error-state {
       background: #f8d7da;
@@ -390,6 +395,116 @@
     .error-title {
       font-weight: 600;
       margin-bottom: 0.5rem;
+    }
+    
+    /* Database Info */
+    .db-info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    
+    .info-card {
+      background: var(--bg-secondary);
+      padding: 1rem;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+    }
+    
+    .info-card-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+    
+    .info-card-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    
+    .info-list {
+      list-style: none;
+      padding: 0;
+      margin: 0.5rem 0 0 0;
+    }
+    
+    .info-list li {
+      padding: 0.5rem;
+      margin: 0.25rem 0;
+      background: var(--bg-primary);
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .info-list li strong {
+      color: var(--text-primary);
+    }
+    
+    .info-list li span {
+      color: var(--text-secondary);
+      font-size: 0.75rem;
+    }
+    
+    .sample-queries {
+      margin-top: 1rem;
+    }
+    
+    .sample-query {
+      background: var(--bg-primary);
+      padding: 0.75rem 1rem;
+      margin: 0.5rem 0;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: var(--transition);
+      font-size: 0.875rem;
+    }
+    
+    .sample-query:hover {
+      background: var(--primary-light);
+      border-color: var(--primary);
+      transform: translateX(4px);
+    }
+    
+    .sample-category {
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-top: 1rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.875rem;
+    }
+    
+    .collapsible {
+      cursor: pointer;
+      user-select: none;
+    }
+    
+    .collapsible::before {
+      content: '▼ ';
+      display: inline-block;
+      transition: transform 0.2s;
+    }
+    
+    .collapsible.collapsed::before {
+      transform: rotate(-90deg);
+    }
+    
+    .collapsible-content {
+      max-height: 1000px;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    
+    .collapsible-content.hidden {
+      max-height: 0;
     }
   </style>
 </head>
@@ -408,6 +523,26 @@
   </header>
   
   <main>
+    <!-- Database Info Section -->
+    <section class="card">
+      <div class="card-header">
+        <h2 class="card-title collapsible" id="dbInfoToggle">Database Context & Available Data</h2>
+        <span class="badge badge-primary" id="dbStatusBadge">Loading...</span>
+      </div>
+      <div id="dbInfoContent" class="collapsible-content">
+        <div id="dbInfo" class="db-info-grid">
+          <div class="info-card">
+            <div class="info-card-title">Loading database information...</div>
+          </div>
+        </div>
+        
+        <div style="margin-top: 1.5rem;">
+          <h3 class="card-title" style="font-size: 1rem; margin-bottom: 0.75rem;">Sample Queries to Try</h3>
+          <div id="sampleQueries"></div>
+        </div>
+      </div>
+    </section>
+    
     <!-- Query Section -->
     <section class="card query-section">
       <div class="search-container">
@@ -466,8 +601,137 @@
     const chartBox = document.getElementById('chartBox');
     const dataBox = document.getElementById('dataBox');
     const clarifyModal = document.getElementById('clarifyModal');
+    const dbInfo = document.getElementById('dbInfo');
+    const sampleQueries = document.getElementById('sampleQueries');
+    const dbStatusBadge = document.getElementById('dbStatusBadge');
+    const dbInfoToggle = document.getElementById('dbInfoToggle');
+    const dbInfoContent = document.getElementById('dbInfoContent');
 
     let lastQuestion = '';
+    
+    // Toggle database info section
+    dbInfoToggle.addEventListener('click', () => {
+      dbInfoToggle.classList.toggle('collapsed');
+      dbInfoContent.classList.toggle('hidden');
+    });
+
+    // Load database information on page load
+    async function loadDatabaseInfo() {
+      try {
+        const res = await fetch('/api/database-info');
+        const data = await res.json();
+        
+        if (data.error) {
+          dbInfo.innerHTML = `<div class="error-state"><div class="error-title">Error</div>${data.error}</div>`;
+          dbStatusBadge.textContent = 'Error';
+          dbStatusBadge.className = 'badge badge-danger';
+          return;
+        }
+        
+        // Build database info display
+        let html = `
+          <div class="info-card">
+            <div class="info-card-title">Database</div>
+            <div class="info-card-value">${data.database}</div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-title">Total Records</div>
+            <div class="info-card-value">${data.total_rows.toLocaleString()}</div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-title">Tables</div>
+            <div class="info-card-value">${data.tables.length}</div>
+          </div>
+        `;
+        
+        // Add date range if available
+        const factTable = data.tables.find(t => t.name === 'fact_sales_pipeline');
+        if (factTable && factTable.date_info) {
+          html += `
+            <div class="info-card">
+              <div class="info-card-title">Data Period</div>
+              <div style="font-size: 0.875rem; margin-top: 0.5rem;">
+                <strong>${factTable.date_info.min_date}</strong> to<br>
+                <strong>${factTable.date_info.max_date}</strong>
+              </div>
+            </div>
+          `;
+        }
+        
+        // Add metrics section
+        html += `
+          <div class="info-card" style="grid-column: 1 / -1;">
+            <div class="info-card-title">Available Metrics</div>
+            <ul class="info-list">
+        `;
+        for (const [key, value] of Object.entries(data.metrics)) {
+          html += `<li><strong>${key}</strong> <span>${typeof value === 'string' && value.length > 30 ? 'computed' : value}</span></li>`;
+        }
+        html += `</ul></div>`;
+        
+        // Add dimensions section
+        html += `
+          <div class="info-card" style="grid-column: 1 / -1;">
+            <div class="info-card-title">Available Dimensions (Filters & Group By)</div>
+            <ul class="info-list">
+        `;
+        for (const [key, value] of Object.entries(data.dimensions)) {
+          html += `<li><strong>${key}</strong> <span>${value}</span></li>`;
+        }
+        html += `</ul></div>`;
+        
+        // Add tables section
+        html += `
+          <div class="info-card" style="grid-column: 1 / -1;">
+            <div class="info-card-title">Database Tables</div>
+            <ul class="info-list">
+        `;
+        for (const table of data.tables) {
+          html += `<li><strong>${table.name}</strong> <span>${table.row_count.toLocaleString()} rows</span></li>`;
+        }
+        html += `</ul></div>`;
+        
+        dbInfo.innerHTML = html;
+        dbStatusBadge.textContent = 'Ready';
+        dbStatusBadge.className = 'badge badge-success';
+        
+      } catch (err) {
+        dbInfo.innerHTML = `<div class="error-state"><div class="error-title">Error</div>${err.message}</div>`;
+        dbStatusBadge.textContent = 'Error';
+        dbStatusBadge.className = 'badge badge-danger';
+      }
+    }
+    
+    // Load sample queries
+    async function loadSampleQueries() {
+      try {
+        const res = await fetch('/api/sample-queries');
+        const data = await res.json();
+        
+        let html = '';
+        for (const cat of data.categories) {
+          html += `<div class="sample-category">${cat.category}</div>`;
+          for (const query of cat.queries) {
+            html += `<div class="sample-query" onclick="runSampleQuery('${query.replace(/'/g, "\\'")}')">${query}</div>`;
+          }
+        }
+        
+        sampleQueries.innerHTML = html;
+      } catch (err) {
+        console.error('Failed to load sample queries:', err);
+      }
+    }
+    
+    // Run a sample query
+    window.runSampleQuery = function(query) {
+      qEl.value = query;
+      lastQuestion = query;
+      run(query);
+    };
+    
+    // Load database info and samples on page load
+    loadDatabaseInfo();
+    loadSampleQueries();
 
     async function callApi(question, clarification) {
       const payload = { question };
