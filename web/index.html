@@ -622,6 +622,8 @@
   </main>
 
   <script>
+    console.log('[DEBUG] Script started');
+    
     const qEl = document.getElementById('q');
     const runBtn = document.getElementById('runBtn');
     const btnText = document.getElementById('btnText');
@@ -633,6 +635,8 @@
     const dbStatusBadge = document.getElementById('dbStatusBadge');
     const dbInfoToggle = document.getElementById('dbInfoToggle');
     const dbInfoContent = document.getElementById('dbInfoContent');
+
+    console.log('[DEBUG] Elements:', {dbInfo, sampleQueries, dbStatusBadge});
 
     let lastQuestion = '';
     
@@ -698,8 +702,7 @@
           </div>
         `;
         
-        // Add date range if available
-        const factTable = data.tables.find(t => t.name === 'fact_sales_pipeline');
+        // Add date range if available (factTable already declared above)
         if (factTable && factTable.date_info) {
           html += `
             <div class="info-card">
