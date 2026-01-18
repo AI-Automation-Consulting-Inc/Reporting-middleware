@@ -235,6 +235,15 @@ def api_database_info():
         tables_info = []
         total_rows = 0
         
+        # Get business context from actual data
+        business_context = {
+            "regions": [],
+            "product_count": 0,
+            "sales_rep_count": 0,
+            "customer_count": 0,
+            "deal_count": 0
+        }
+        
         with engine.connect() as conn:
             for table_name in inspector.get_table_names():
                 columns = inspector.get_columns(table_name)
@@ -253,6 +262,22 @@ def api_database_info():
                     row = result.fetchone()
                     if row:
                         date_info = {"min_date": row[0], "max_date": row[1]}
+                    
+                    # Get deal count
+                    business_context["deal_count"] = row_count
+                
+                # Get regions
+                if table_name == "dim_region":
+                    result = conn.execute(text("SELECT DISTINCT geo_cluster FROM dim_region WHERE geo_cluster IS NOT NULL"))
+                    business_context["regions"] = [row[0] for row in result.fetchall()]
+                
+                # Get counts
+                if table_name == "dim_product":
+                    business_context["product_count"] = row_count
+                elif table_name == "dim_sales_rep":
+                    business_context["sales_rep_count"] = row_count
+                elif table_name == "dim_customer":
+                    business_context["customer_count"] = row_count
                 
                 tables_info.append({
                     "name": table_name,
@@ -270,7 +295,8 @@ def api_database_info():
             "tables": tables_info,
             "metrics": config.get("metrics", {}),
             "dimensions": config.get("dimensions", {}),
-            "date_ranges": config.get("date_ranges", {})
+            "date_ranges": config.get("date_ranges", {}),
+            "business_context": business_context
         }
     
     except Exception as e:

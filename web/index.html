@@ -506,6 +506,33 @@
     .collapsible-content.hidden {
       max-height: 0;
     }
+    
+    .description-box {
+      background: linear-gradient(135deg, var(--primary-light) 0%, #f0f9f6 100%);
+      border-left: 4px solid var(--primary);
+      padding: 1.25rem;
+      border-radius: var(--radius-md);
+      margin-bottom: 1.5rem;
+      line-height: 1.8;
+      color: var(--text-primary);
+    }
+    
+    .description-box h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 0.75rem;
+    }
+    
+    .description-box p {
+      margin: 0.5rem 0;
+      font-size: 0.95rem;
+    }
+    
+    .description-box strong {
+      color: var(--accent);
+      font-weight: 600;
+    }
   </style>
 </head>
 <body>
@@ -628,8 +655,35 @@
           return;
         }
         
+        // Build business description
+        const ctx = data.business_context;
+        const factTable = data.tables.find(t => t.name === 'fact_sales_pipeline');
+        let description = `
+          <div class="description-box">
+            <h3>📊 What's in this database?</h3>
+            <p>
+              This database contains <strong>sales pipeline data</strong> for a B2B software company tracking 
+              <strong>${ctx.deal_count.toLocaleString()} deals</strong> across <strong>${ctx.regions.join(', ')}</strong> regions.
+            </p>
+            <p>
+              The data includes performance metrics for <strong>${ctx.sales_rep_count} sales representatives</strong> 
+              selling <strong>${ctx.product_count} products</strong> to <strong>${ctx.customer_count} customers</strong>`;
+        
+        if (factTable && factTable.date_info) {
+          description += ` over the period from <strong>${factTable.date_info.min_date}</strong> to <strong>${factTable.date_info.max_date}</strong>`;
+        }
+        
+        description += `.
+            </p>
+            <p>
+              You can query this data using natural language to analyze revenue trends, compare sales rep performance, 
+              track deals by product category, identify top performers, and much more!
+            </p>
+          </div>
+        `;
+        
         // Build database info display
-        let html = `
+        let html = description + `
           <div class="info-card">
             <div class="info-card-title">Database</div>
             <div class="info-card-value">${data.database}</div>
