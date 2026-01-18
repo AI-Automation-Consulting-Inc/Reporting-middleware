@@ -365,15 +365,58 @@ def build_sql(intent: Dict[str, Any], config: Dict[str, Any], db_type: str = "sq
                 if not join_key:
                     raise SQLBuilderError(f"Cannot determine join key between {fact_table} and {dim_table}")
 
-                sel = select(literal_column(f"d.{group_col}").label("group_col"), metric_expr).select_from(text(f"{fact_table} f JOIN {dim_table} d ON f.{join_key} = d.{join_key}"))
-                sel = sel.where(text(f"f.{date_column} >= :start_date")).where(text(f"f.{date_column} <= :end_date"))
+                # Build from clause with initial join for group_by dimension
+                from_clause = f"{fact_table} f JOIN {dim_table} d ON f.{join_key} = d.{join_key}"
+                additional_joins = []
+                where_clauses = [f"f.{date_column} >= :start_date", f"f.{date_column} <= :end_date"]
+                dim_alias_counter = 0
+                
+                # Process filters - they may live in different dim tables
                 for col, val in (intent.get("filters") or {}).items():
                     mapped = _map_dimension(col, config) or col
                     if mapped in fact_cols:
-                        sel = sel.where(text(f"f.{mapped} = :{col}"))
+                        where_clauses.append(f"f.{mapped} = :{col}")
+                    elif mapped == group_col:
+                        # Filter is on the same dimension we're grouping by
+                        where_clauses.append(f"d.{mapped} = :{col}")
                     else:
-                        # if filter lives in a dim table, attempt to find the dim and join it
-                        sel = sel.where(text(f"d.{mapped} = :{col}"))
+                        # Filter lives in a different dim table - find and join it
+                        filter_dim_table = _find_dim_table_for_column(mapped, schema) if schema else None
+                        
+                        if not filter_dim_table:
+                            db_path = Path("enhanced_sales.db")
+                            if db_path.exists():
+                                with sqlite3.connect(str(db_path)) as conn:
+                                    cur = conn.cursor()
+                                    cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'dim_%'")
+                                    for (t,) in cur.fetchall():
+                                        cur.execute(f"PRAGMA table_info('{t}')")
+                                        cols = [r[1] for r in cur.fetchall()]
+                                        if mapped in cols:
+                                            filter_dim_table = t
+                                            break
+                        
+                        if filter_dim_table and filter_dim_table != dim_table:
+                            # Need to join another dim table for this filter
+                            filter_join_key = _find_join_key(fact_table, filter_dim_table, fact_cols, schema) if schema else None
+                            if not filter_join_key:
+                                candidate = filter_dim_table.replace('dim_', '') + '_id'
+                                if candidate in fact_cols:
+                                    filter_join_key = candidate
+                            if filter_join_key:
+                                falias = f"d{dim_alias_counter}"
+                                dim_alias_counter += 1
+                                additional_joins.append(f"JOIN {filter_dim_table} {falias} ON f.{filter_join_key} = {falias}.{filter_join_key}")
+                                where_clauses.append(f"{falias}.{mapped} = :{col}")
+                            else:
+                                where_clauses.append(f"d.{mapped} = :{col}")
+                        else:
+                            where_clauses.append(f"d.{mapped} = :{col}")
+                
+                full_from = " ".join([from_clause] + additional_joins)
+                sel = select(literal_column(f"d.{group_col}").label("group_col"), metric_expr).select_from(text(full_from))
+                for w in where_clauses:
+                    sel = sel.where(text(w))
                 sel = sel.group_by(literal_column(f"d.{group_col}")).order_by(text("metric DESC"))
 
     # Prepare params and bind them to the Select. Return the Select and params dict.

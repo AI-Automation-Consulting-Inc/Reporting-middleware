@@ -46,6 +46,10 @@ def api_query(payload: Dict[str, Any]):
     if not question:
         return JSONResponse({"error": "question is required"}, status_code=400)
 
+    # If user confirmed with "yes", append it as clarification
+    if clarification and clarification.lower().strip() in ["yes", "y", "correct", "right"]:
+        clarification = "yes, that interpretation is correct"
+    
     # Combine clarification inline to guide the model without complex session state
     if clarification:
         question = f"{question}\nClarification: {clarification.strip()}"
@@ -57,19 +61,41 @@ def api_query(payload: Dict[str, Any]):
     # Detect common modifiers/denominators to build ephemeral expressions
     lowered_q = question.lower()
     ephemeral_expr: Optional[str] = None
-    # Average revenue per sales person
-    if ("average" in lowered_q or "avg" in lowered_q) and "revenue" in lowered_q and ("sales person" in lowered_q or "sales_rep" in lowered_q or "salesperson" in lowered_q):
+    show_rep_breakdown = False
+    
+    print(f"[API] Original question: {question}")
+    print(f"[API] Lowered: {lowered_q}")
+    
+    # Average revenue per sales person - only set ephemeral expr if not already a config metric
+    if ("average" in lowered_q or "avg" in lowered_q) and "revenue" in lowered_q and ("sales person" in lowered_q or "sales_rep" in lowered_q or "salesperson" in lowered_q or "per sales" in lowered_q):
         # Qualify columns to fact table alias used by builder (f.)
-        ephemeral_expr = "SUM(f.net_revenue) / NULLIF(COUNT(DISTINCT f.rep_name), 0)"
+        # Count distinct reps via key present in fact to avoid extra joins
+        ephemeral_expr = "SUM(f.net_revenue) / NULLIF(COUNT(DISTINCT f.sales_rep_id), 0)"
+        print(f"[API] Detected per-rep metric, setting ephemeral expression")
 
     try:
         from nlp.llm_intent_parser import parse_intent_with_llm  # type: ignore
 
         intent = parse_intent_with_llm(question, config)
         parser_used = "llm"
+        print(f"\n[API] LLM parsed intent: {json.dumps(intent, indent=2)}")
+        
+        # Check if LLM needs clarification
+        if intent.get("clarification_required"):
+            return {
+                "clarification_required": True,
+                "interpretation": intent.get("interpretation", ""),
+                "question": intent.get("question", "Is this correct?")
+            }
+        
         if ephemeral_expr:
             intent["derived_expression"] = ephemeral_expr
             intent["metric"] = intent.get("metric", "revenue")
+            print(f"[API] Added ephemeral expression: {ephemeral_expr}")
+            # Only enable rep breakdown if LLM parsed group_by as region AND we have the ephemeral expr
+            if intent.get("group_by") == "region" and ("sales person" in lowered_q or "sales_rep" in lowered_q):
+                show_rep_breakdown = True
+                print(f"[API] Enabled rep breakdown flag")
     except RuntimeError as exc:
         msg = str(exc)
         # If LLM asks for clarification and the client did provide one, attempt a heuristic fallback
@@ -118,6 +144,7 @@ def api_query(payload: Dict[str, Any]):
     # Validate and resolve dates
     try:
         validated = validate_intent(intent, config)
+        print(f"[API] Validated intent: {json.dumps(validated, indent=2)}")
     except (IntentValidationError, RuntimeError) as exc:
         return JSONResponse({"error": f"Invalid intent: {exc}"}, status_code=400)
 
@@ -148,10 +175,34 @@ def api_query(payload: Dict[str, Any]):
     chart_b64: Optional[str] = None
     try:
         from chart.chart_builder import build_chart  # type: ignore
-
-        chart_info = build_chart(intent=validated, results=rows, output_path='last_query_chart.html', include_base64=True)
+        
+        # Try LLM chart selection, but don't fail if it errors
+        chart_selection = None
+        try:
+            from chart.llm_chart_selector import select_chart_type_with_llm  # type: ignore
+            chart_selection = select_chart_type_with_llm(question, validated, rows)
+            chart_opts = chart_selection.get("chart_options", {})
+            
+            # Override with LLM's breakdown recommendation
+            if chart_opts.get("show_breakdown"):
+                show_rep_breakdown = True
+        except Exception as llm_err:
+            print(f"[API] LLM chart selection failed (using fallback): {llm_err}")
+            chart_selection = None
+        
+        chart_info = build_chart(
+            intent=validated, 
+            results=rows, 
+            output_path='last_query_chart.html', 
+            include_base64=True, 
+            show_rep_breakdown=show_rep_breakdown,
+            llm_chart_hint=chart_selection
+        )
         chart_b64 = chart_info.get("html_base64")
-    except Exception:
+    except Exception as e:
+        print(f"[API] Chart build error: {e}")
+        import traceback
+        traceback.print_exc()
         chart_b64 = None
 
     return {

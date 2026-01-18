@@ -5,9 +5,15 @@ from typing import Dict, Any, Set
 DB_PATH = Path("enhanced_sales.db")
 
 
+def _load_country_names(conn: sqlite3.Connection) -> Set[str]:
+    cur = conn.cursor()
+    cur.execute("SELECT DISTINCT country FROM dim_region WHERE country IS NOT NULL")
+    return {row[0].strip().lower() for row in cur.fetchall()}
+
+
 def _load_region_names(conn: sqlite3.Connection) -> Set[str]:
     cur = conn.cursor()
-    cur.execute("SELECT country FROM dim_region WHERE country IS NOT NULL")
+    cur.execute("SELECT DISTINCT geo_cluster FROM dim_region WHERE geo_cluster IS NOT NULL")
     return {row[0].strip().lower() for row in cur.fetchall()}
 
 
@@ -18,7 +24,7 @@ def _load_customer_names(conn: sqlite3.Connection) -> Set[str]:
 
 
 def disambiguate_filters(intent: Dict[str, Any], db_path: str | Path = DB_PATH) -> Dict[str, Any]:
-    """Given an intent dict, adjust filters so region-like values are moved to `region`.
+    """Given an intent dict, adjust filters so country/region/customer values are properly categorized.
 
     Returns the modified intent (mutates input as well).
     """
@@ -28,6 +34,7 @@ def disambiguate_filters(intent: Dict[str, Any], db_path: str | Path = DB_PATH) 
 
     conn = sqlite3.connect(str(db_path))
     try:
+        countries = _load_country_names(conn)
         regions = _load_region_names(conn)
         customers = _load_customer_names(conn)
     finally:
@@ -41,6 +48,7 @@ def disambiguate_filters(intent: Dict[str, Any], db_path: str | Path = DB_PATH) 
         if not isinstance(val, str):
             continue
         v = val.strip().lower()
+        
         # Exact match customer name -> prefer customer
         if v in customers:
             # ensure it's set on customer_name
@@ -49,20 +57,20 @@ def disambiguate_filters(intent: Dict[str, Any], db_path: str | Path = DB_PATH) 
                 filters.pop(key, None)
                 filters["customer_name"] = val
             continue
-        # Exact match region name -> promote to region
+            
+        # Exact match country name -> set to country
+        if v in countries:
+            if key != "country":
+                filters.pop(key, None)
+                filters["country"] = val
+            continue
+            
+        # Exact match region (geo_cluster) name -> set to region
         if v in regions:
             if key != "region":
                 filters.pop(key, None)
                 filters["region"] = val
             continue
-        # Handle phrases like 'emea region' or 'region emea'
-        for r in regions:
-            if r in v:
-                # promote
-                if key != "region":
-                    filters.pop(key, None)
-                    filters["region"] = val
-                break
 
     intent["filters"] = filters
     return intent

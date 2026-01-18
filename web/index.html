@@ -3,84 +3,469 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Reporting Middleware</title>
+  <title>AI Automation Consulting Inc's Reporting Middleware Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    /* Adopt only PLG colors and font; keep layout simple */
     :root {
-      --plg-primary: #2A9D8F;
-      --plg-bg-light: #f7f0e9;
-      --plg-bg-cream: #FAF9F7;
-      --plg-text-dark: #264653;
-      --plg-text-light: #6C757D;
-      --plg-white: #ffffff;
-      --plg-border: #E9ECEF;
+      --primary: #3d9b7f;
+      --primary-hover: #2f7d66;
+      --primary-light: #e8f5f1;
+      --accent: #4a7c59;
+      --success: #28a745;
+      --danger: #dc3545;
+      --warning: #ffc107;
+      --bg-primary: #ffffff;
+      --bg-secondary: #f5f0e8;
+      --bg-tertiary: #e9e4d9;
+      --text-primary: #212529;
+      --text-secondary: #6c757d;
+      --text-muted: #adb5bd;
+      --border: #dee2e6;
+      --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --transition: all 0.2s ease;
     }
-    body { font-family: 'Inter', sans-serif; margin: 0; color: var(--plg-text-dark); background: linear-gradient(135deg, var(--plg-bg-light) 0%, #e8ddd4 100%); }
-    header { padding: 24px; border-bottom: 1px solid var(--plg-border); background: transparent; }
-    main { padding: 20px; max-width: 1200px; margin: 0 auto; }
-    section { margin-bottom: 24px; }
-    .card { background: var(--plg-white); border: 1px solid var(--plg-border); border-radius: 12px; padding: 16px; }
-    .grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
-    @media (min-width: 900px) { .grid { grid-template-columns: 2fr 1fr; } }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { border-bottom: 1px solid var(--plg-border); padding: 8px; text-align: left; }
-    th { background: var(--plg-bg-cream); color: var(--plg-text-light); }
-    .input-row { display: flex; gap: 8px; }
-    input[type="text"] { flex: 1; padding: 10px; border: 1px solid var(--plg-border); border-radius: 8px; background: var(--plg-white); color: var(--plg-text-dark); }
-    input[type="text"]:focus { border-color: var(--plg-primary); outline: none; }
-    button { padding: 10px 14px; border: 0; border-radius: 8px; background: var(--plg-primary); color: var(--plg-white); cursor: pointer; }
-    button:disabled { opacity: 0.6; cursor: not-allowed; }
-    .muted { color: var(--plg-text-light); }
-    iframe { width: 100%; height: 480px; border: 1px solid var(--plg-border); border-radius: 8px; background: var(--plg-white); }
-    .clarify { background: var(--plg-bg-cream); border: 1px solid var(--plg-border); padding: 12px; border-radius: 8px; color: var(--plg-text-dark); }
-    .tag { display: inline-block; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--plg-border); color: var(--plg-text-light); }
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #f5f0e8 0%, #e9e4d9 100%);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    
+    /* Header */
+    header {
+      background: var(--bg-primary);
+      border-bottom: 1px solid var(--border);
+      padding: 1.5rem 2rem;
+      box-shadow: var(--shadow-sm);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #000000;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .logo-img {
+      height: 48px;
+      width: auto;
+    }
+    
+    .header-subtitle {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      margin-top: 0.25rem;
+    }
+    
+    /* Main Container */
+    main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    
+    /* Cards */
+    .card {
+      background: var(--bg-primary);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      padding: 1.5rem;
+      transition: var(--transition);
+    }
+    
+    .card:hover {
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .card-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    
+    /* Query Section */
+    .query-section {
+      position: sticky;
+      top: 85px;
+      z-index: 90;
+    }
+    
+    .search-container {
+      position: relative;
+      margin-bottom: 1rem;
+    }
+    
+    .search-icon {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+    
+    input[type="text"] {
+      width: 100%;
+      padding: 0.875rem 1rem 0.875rem 2.75rem;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-md);
+      font-size: 1rem;
+      font-family: inherit;
+      transition: var(--transition);
+      background: var(--bg-primary);
+    }
+    
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-light);
+    }
+    
+    /* Buttons */
+    button {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      font-family: inherit;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    
+    .btn-primary:hover:not(:disabled) {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+    }
+    
+    .btn-success {
+      background: var(--success);
+      color: white;
+    }
+    
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+    
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    
+    .btn-group {
+      display: flex;
+      gap: 0.75rem;
+    }
+    
+    /* Grid Layout */
+    .results-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+    
+    @media (min-width: 1024px) {
+      .results-grid {
+        grid-template-columns: 2fr 1fr;
+      }
+    }
+    
+    /* Chart Container */
+    .chart-container {
+      min-height: 500px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    iframe {
+      width: 100%;
+      height: 500px;
+      border: none;
+      border-radius: var(--radius-md);
+    }
+    
+    /* Table */
+    .table-container {
+      overflow-x: auto;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    
+    th {
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      font-weight: 600;
+      text-align: left;
+      padding: 0.75rem 1rem;
+      position: sticky;
+      top: 0;
+      border-bottom: 2px solid var(--border);
+    }
+    
+    td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    tr:hover {
+      background: var(--bg-secondary);
+    }
+    
+    /* Clarification Modal */
+    .clarification-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      animation: fadeIn 0.2s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    .clarification-modal {
+      background: var(--bg-primary);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      max-width: 600px;
+      width: 90%;
+      box-shadow: var(--shadow-lg);
+      animation: slideUp 0.3s ease;
+    }
+    
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    
+    .modal-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+    }
+    
+    .interpretation-box {
+      background: var(--primary-light);
+      border-left: 4px solid var(--primary);
+      padding: 1rem;
+      border-radius: var(--radius-md);
+      margin: 1rem 0;
+      font-style: italic;
+      color: var(--text-primary);
+    }
+    
+    .modal-question {
+      font-weight: 600;
+      margin: 1rem 0;
+      color: var(--text-primary);
+    }
+    
+    .modal-actions {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    
+    /* Empty States */
+    .empty-state {
+      text-align: center;
+      padding: 3rem 2rem;
+      color: var(--text-secondary);
+    }
+    
+    .empty-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+    
+    /* Loading State */
+    .loading {
+      display: inline-block;
+      width: 1rem;
+      height: 1rem;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+    }
+    
+    .badge-success {
+      background: #d4edda;
+      color: #155724;
+    }
+    
+    /* Error State */
+    .error-state {
+      background: #f8d7da;
+      border: 1px solid #f5c6cb;
+      color: #721c24;
+      padding: 1rem;
+      border-radius: var(--radius-md);
+    }
+    
+    .error-title {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
   </style>
 </head>
 <body>
   <header>
-    <h1>Reporting Middleware</h1>
-    <p class="muted">Schema-aware NL → SQL with charts • SQLite demo</p>
+    <div class="header-content">
+      <div>
+        <h1>
+          <img src="https://assets.zyrosite.com/mv042PGb6XUaQgwG/logo-dWxwB8vE60F7LV5X.svg" alt="Logo" class="logo-img" />
+          <span>AI Automation Consulting Inc</span>
+        </h1>
+        <div class="header-subtitle">Reporting Middleware Demo - Natural Language SQL Engine</div>
+      </div>
+      <div class="badge badge-success">Live</div>
+    </div>
   </header>
+  
   <main>
-    <section class="card">
-      <h2 style="margin-top:0">Overview <span class="tag">Private</span></h2>
-      <p>This middleware interprets natural language queries using a schema-aware parser, validates against your tenant config, builds SQL with SQLAlchemy, executes on SQLite, and returns both rows and a suggested chart.</p>
-      <ul>
-        <li>Fact: <code>fact_sales_pipeline</code></li>
-        <li>Outputs: interactive Plotly chart, data rows</li>
-        <li>Strict mode: asks for clarification when needed</li>
-      </ul>
+    <!-- Query Section -->
+    <section class="card query-section">
+      <div class="search-container">
+        <svg class="search-icon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+        </svg>
+        <input id="q" type="text" placeholder="Ask anything... e.g., revenue by product for EMEA region last 6 months" />
+      </div>
+      <button id="runBtn" class="btn-primary">
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+          <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+          <path d="M6.271 5.055a.5.5 0 0 1 .52.038l3.5 2.5a.5.5 0 0 1 0 .814l-3.5 2.5A.5.5 0 0 1 6 10.5v-5a.5.5 0 0 1 .271-.445z"/>
+        </svg>
+        <span id="btnText">Run Query</span>
+      </button>
     </section>
 
-    <section class="grid">
+    <!-- Results Grid -->
+    <div class="results-grid">
+      <!-- Chart Section -->
       <div class="card">
-        <h2>Chart</h2>
-        <div id="chartBox">
-          <p class="muted">Run a query to render a chart here.</p>
+        <div class="card-header">
+          <h2 class="card-title">Chart</h2>
+        </div>
+        <div id="chartBox" class="chart-container">
+          <div class="empty-state">
+            <div class="empty-icon">📈</div>
+            <div>Run a query to visualize your data</div>
+          </div>
         </div>
       </div>
-      <div class="card">
-        <h2>Data</h2>
-        <div id="dataBox"></div>
-      </div>
-    </section>
 
-    <section class="card">
-      <h2>Ask a question</h2>
-      <div id="clarifyBox" class="clarify" style="display:none"></div>
-      <div class="input-row">
-        <input id="q" type="text" placeholder="e.g., revenue per customer by region for last 6 months" />
-        <button id="runBtn">Run</button>
+      <!-- Data Section -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Data</h2>
+        </div>
+        <div id="dataBox" class="table-container">
+          <div class="empty-state">
+            <div class="empty-icon">📋</div>
+            <div>Query results will appear here</div>
+          </div>
+        </div>
       </div>
-    </section>
+    </div>
+
+    <!-- Clarification Modal (hidden by default) -->
+    <div id="clarifyModal" style="display:none"></div>
   </main>
 
   <script>
     const qEl = document.getElementById('q');
     const runBtn = document.getElementById('runBtn');
+    const btnText = document.getElementById('btnText');
     const chartBox = document.getElementById('chartBox');
     const dataBox = document.getElementById('dataBox');
-    const clarifyBox = document.getElementById('clarifyBox');
+    const clarifyModal = document.getElementById('clarifyModal');
 
     let lastQuestion = '';
 
@@ -106,7 +491,10 @@
     }
 
     function renderRows(rows) {
-      if (!rows || rows.length === 0) { dataBox.innerHTML = '<p class="muted">No data.</p>'; return; }
+      if (!rows || rows.length === 0) {
+        dataBox.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div>No data returned</div></div>';
+        return;
+      }
       const cols = Object.keys(rows[0]);
       let html = '<table><thead><tr>' + cols.map(c=>`<th>${c}</th>`).join('') + '</tr></thead><tbody>';
       for (const r of rows) {
@@ -117,62 +505,126 @@
     }
 
     function renderChart(htmlBase64) {
-      if (!htmlBase64) { chartBox.innerHTML = '<p class="muted">No chart available.</p>'; return; }
+      if (!htmlBase64) {
+        chartBox.innerHTML = '<div class="empty-state"><div class="empty-icon">📈</div><div>No chart available</div></div>';
+        return;
+      }
       const html = atob(htmlBase64);
       const iframe = document.createElement('iframe');
       iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups');
       iframe.srcdoc = html;
       chartBox.innerHTML = '';
       chartBox.appendChild(iframe);
+      console.log('[CHART] Loaded at', new Date().toISOString());
+    }
+
+    function showClarification(interpretation, question) {
+      clarifyModal.innerHTML = `
+        <div class="clarification-overlay">
+          <div class="clarification-modal">
+            <div class="modal-title">🤔 Need Clarification</div>
+            <div>
+              <strong>I understand your question as:</strong>
+              <div class="interpretation-box">${interpretation}</div>
+            </div>
+            <div class="modal-question">${question}</div>
+            <div class="modal-actions">
+              <button id="clarYes" class="btn-success">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/>
+                </svg>
+                Yes, that's correct
+              </button>
+              <button id="clarNo" class="btn-danger">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                </svg>
+                No, let me rephrase
+              </button>
+            </div>
+            <div id="clarRetry" style="display:none; margin-top: 1.5rem;">
+              <strong>Please rephrase your question:</strong>
+              <div style="margin-top: 0.75rem;">
+                <input id="clarInput" type="text" placeholder="Enter your question differently" style="margin-bottom: 0.75rem;" />
+                <button id="clarBtn" class="btn-primary">Submit</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      clarifyModal.style.display = 'block';
+
+      const clarYes = document.getElementById('clarYes');
+      const clarNo = document.getElementById('clarNo');
+      const clarRetry = document.getElementById('clarRetry');
+
+      clarYes.onclick = async () => {
+        clarYes.disabled = true;
+        clarifyModal.style.display = 'none';
+        await run(lastQuestion, 'yes');
+      };
+
+      clarNo.onclick = () => {
+        clarNo.disabled = true;
+        clarRetry.style.display = 'block';
+        const clarInput = document.getElementById('clarInput');
+        clarInput.focus();
+      };
+
+      const clarInput = document.getElementById('clarInput');
+      const clarBtn = document.getElementById('clarBtn');
+      const handler = async () => {
+        const ans = clarInput.value.trim();
+        if (!ans) return;
+        clarBtn.disabled = true;
+        clarifyModal.style.display = 'none';
+        lastQuestion = ans;
+        await run(ans, null);
+      };
+      clarBtn.onclick = handler;
+      clarInput.onkeydown = (e) => { if (e.key === 'Enter') handler(); };
     }
 
     async function run(question, clarification) {
       runBtn.disabled = true;
+      btnText.innerHTML = '<span class="loading"></span> Processing...';
+      
       try {
         const out = await callApi(question, clarification);
+        
         if (out.clarification_required) {
-          clarifyBox.style.display = 'block';
-          clarifyBox.innerHTML = `
-            <div><strong>Clarification needed:</strong> ${out.message}</div>
-            <div class="input-row" style="margin-top:8px">
-              <input id="clarInput" type="text" placeholder="Type answer and press Enter" />
-              <button id="clarBtn">Send</button>
-            </div>
-          `;
-          const clarInput = document.getElementById('clarInput');
-          const clarBtn = document.getElementById('clarBtn');
-          clarInput.focus();
-          const handler = async () => {
-            const ans = clarInput.value.trim();
-            if (!ans) return;
-            clarBtn.disabled = true;
-            await run(lastQuestion, ans);
-          };
-          clarBtn.onclick = handler;
-          clarInput.onkeydown = (e)=>{ if (e.key === 'Enter') handler(); };
+          const interpretation = out.interpretation || '';
+          const clarQuestion = out.question || out.message || 'Is this correct?';
+          showClarification(interpretation, clarQuestion);
           return;
         }
-        clarifyBox.style.display = 'none';
+        
+        clarifyModal.style.display = 'none';
         renderChart(out.chart_html_base64);
         renderRows(out.rows);
       } catch (e) {
         const msg = (e && e.message) ? e.message : String(e);
-        chartBox.innerHTML = `<div class="card"><h3>Error</h3><p class="muted">${msg}</p></div>`;
-        dataBox.innerHTML = '';
-        clarifyBox.style.display = 'none';
+        chartBox.innerHTML = `
+          <div class="error-state">
+            <div class="error-title">❌ Error</div>
+            <div>${msg}</div>
+          </div>
+        `;
+        dataBox.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div>Query failed</div></div>';
       } finally {
         runBtn.disabled = false;
+        btnText.textContent = 'Run Query';
       }
     }
 
-    runBtn.addEventListener('click', async ()=>{
+    runBtn.addEventListener('click', async () => {
       const question = qEl.value.trim();
       if (!question) return;
       lastQuestion = question;
       await run(question);
     });
 
-    qEl.addEventListener('keydown', async (e)=>{
+    qEl.addEventListener('keydown', async (e) => {
       if (e.key === 'Enter') { runBtn.click(); }
     });
   </script>
