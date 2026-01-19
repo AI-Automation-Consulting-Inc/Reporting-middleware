@@ -74,6 +74,8 @@ def api_query(payload: Dict[str, Any]):
         ephemeral_expr = "SUM(f.net_revenue) / NULLIF(COUNT(DISTINCT f.sales_rep_id), 0)"
         print(f"[API] Detected per-rep metric, setting ephemeral expression")
 
+    calc_steps: Optional[Dict[str, Any]] = None
+
     try:
         from nlp.llm_intent_parser import parse_intent_with_llm  # type: ignore
 
@@ -93,10 +95,7 @@ def api_query(payload: Dict[str, Any]):
             intent["derived_expression"] = ephemeral_expr
             intent["metric"] = intent.get("metric", "revenue")
             print(f"[API] Added ephemeral expression: {ephemeral_expr}")
-            # Only enable rep breakdown if LLM parsed group_by as region AND we have the ephemeral expr
-            if intent.get("group_by") == "region" and ("sales person" in lowered_q or "sales_rep" in lowered_q):
-                show_rep_breakdown = True
-                print(f"[API] Enabled rep breakdown flag")
+            # Let chart selection decide whether to break down by rep; default stays aggregated
         
         # Fix common LLM mistakes: using dimension columns instead of ID columns in derived expressions
         derived_expr = intent.get("derived_expression", "")
@@ -150,7 +149,8 @@ def api_query(payload: Dict[str, Any]):
         else:
             return JSONResponse({"error": msg}, status_code=400)
     except Exception as exc:  # missing key, model, etc.
-        return JSONResponse({"error": f"Parser unavailable: {exc}"}, status_code=500)
+        print(f"[API] Parser error: {exc}")
+        return JSONResponse({"error": "I'm not able to answer that right now. My training isn't complete yet. Please try a different question or pick one of the sample queries."}, status_code=400)
 
     # Optional DB-backed disambiguation
     try:
@@ -167,6 +167,30 @@ def api_query(payload: Dict[str, Any]):
     except (IntentValidationError, RuntimeError) as exc:
         return JSONResponse({"error": f"Invalid intent: {exc}"}, status_code=400)
 
+    # Build human-readable calculation steps for downstream UI
+    try:
+        derived_expr = validated.get("derived_expression")
+        group_by = validated.get("group_by")
+        if derived_expr == "SUM(f.net_revenue) / NULLIF(COUNT(DISTINCT f.sales_rep_id), 0)" and group_by == "region":
+            rd = validated.get("resolved_dates", {})
+            start_date = rd.get("start_date", "selected period")
+            end_date = rd.get("end_date", "selected period")
+            calc_steps = {
+                "title": "How this metric is calculated",
+                "formula": "Average revenue per sales person per region = total revenue / distinct sales reps (per region)",
+                "steps": [
+                    f"Total revenue by region: SUM(net_revenue) grouped by region from {start_date} to {end_date}.",
+                    "Distinct sales reps by region: COUNT(DISTINCT sales_rep_id) in the same period.",
+                    "Average per region: total revenue / distinct reps to get average revenue per sales person for each region.",
+                ],
+                "matches": [
+                    "The question asked for average revenue per sales person by region, which implies revenue divided by sales reps within each region.",
+                    "We use fact table IDs (region_id, sales_rep_id) to avoid name-based join errors and ensure correct aggregation.",
+                ],
+            }
+    except Exception as e:
+        print(f"[API] calc_steps generation skipped: {e}")
+
     # Build SQL and run
     try:
         from builder.sql_builder import build_sql  # type: ignore
@@ -178,7 +202,8 @@ def api_query(payload: Dict[str, Any]):
         sel, params = build_sql(validated, config, db_type='sqlite')
         engine = create_engine('sqlite:///enhanced_sales.db')
     except Exception as exc:
-        return JSONResponse({"error": f"SQL build error: {exc}"}, status_code=400)
+        print(f"[API] SQL build error: {exc}")
+        return JSONResponse({"error": "I can't construct a query for that question. My training isn't complete for this type of request yet."}, status_code=400)
 
     # Execute
     rows: List[Dict[str, Any]] = []
@@ -187,7 +212,8 @@ def api_query(payload: Dict[str, Any]):
             res = conn.execute(sel, params)
             rows = [dict(r._mapping) for r in res]
     except Exception as exc:
-        return JSONResponse({"error": f"Query execution error: {exc}"}, status_code=500)
+        print(f"[API] Query execution error: {exc}")
+        return JSONResponse({"error": "Something went wrong executing that query. Please try rephrasing your question."}, status_code=500)
 
     # Build chart HTML and return as base64 for embedding (iframe srcdoc on client)
     chart_info: Dict[str, Any] = {}
@@ -231,6 +257,7 @@ def api_query(payload: Dict[str, Any]):
         "rows": rows,
         "chart_type": chart_info.get("chart_type"),
         "chart_html_base64": chart_b64,
+        "calc_steps": calc_steps,
     }
 
 
@@ -359,8 +386,35 @@ def api_sample_queries():
                 "queries": [
                     "monthly revenue trend",
                     "quarterly deal count",
-                    "year over year growth",
-                    "weekly sales activity"
+                    "revenue this month vs last month",
+                    "deals closed by month"
+                ]
+            },
+            {
+                "category": "Regional Performance",
+                "queries": [
+                    "revenue by region",
+                    "EMEA region performance",
+                    "AMER vs EMEA revenue",
+                    "top region by sales"
+                ]
+            },
+            {
+                "category": "Customer & Product Insights",
+                "queries": [
+                    "revenue by product",
+                    "top 5 products",
+                    "total customers",
+                    "deals by product category"
+                ]
+            },
+            {
+                "category": "Sales Rep Rankings",
+                "queries": [
+                    "top sales person",
+                    "sales rep revenue ranking",
+                    "highest revenue by sales rep",
+                    "deal count per sales person"
                 ]
             }
         ]

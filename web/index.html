@@ -533,6 +533,47 @@
       color: var(--accent);
       font-weight: 600;
     }
+
+    /* Calculation steps */
+    .calc-steps {
+      margin-top: 1rem;
+      padding: 1rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: var(--bg-secondary);
+    }
+
+    .calc-steps h3 {
+      margin-bottom: 0.5rem;
+      font-size: 1rem;
+      color: var(--text-primary);
+    }
+
+    .calc-steps .formula {
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+      font-size: 0.95rem;
+    }
+
+    .calc-steps ol {
+      padding-left: 1.25rem;
+      margin: 0.5rem 0 0.75rem 0;
+    }
+
+    .calc-steps li {
+      margin: 0.25rem 0;
+      color: var(--text-primary);
+    }
+
+    .calc-steps .matches {
+      margin-top: 0.5rem;
+      padding: 0.75rem;
+      background: var(--bg-primary);
+      border-radius: var(--radius-sm);
+      border: 1px dashed var(--border);
+      font-size: 0.9rem;
+    }
   </style>
 </head>
 <body>
@@ -601,6 +642,7 @@
             <div>Run a query to visualize your data</div>
           </div>
         </div>
+        <div id="stepsBox" class="calc-steps" style="display:none"></div>
       </div>
 
       <!-- Data Section -->
@@ -629,6 +671,7 @@
     const btnText = document.getElementById('btnText');
     const chartBox = document.getElementById('chartBox');
     const dataBox = document.getElementById('dataBox');
+    const stepsBox = document.getElementById('stepsBox');
     const clarifyModal = document.getElementById('clarifyModal');
     const dbInfo = document.getElementById('dbInfo');
     const sampleQueries = document.getElementById('sampleQueries');
@@ -835,6 +878,23 @@
       console.log('[CHART] Loaded at', new Date().toISOString());
     }
 
+    function renderCalcSteps(info) {
+      if (!info) {
+        stepsBox.style.display = 'none';
+        stepsBox.innerHTML = '';
+        return;
+      }
+      const steps = (info.steps || []).map(s => `<li>${s}</li>`).join('');
+      const matches = (info.matches || []).map(m => `<div>• ${m}</div>`).join('');
+      stepsBox.style.display = 'block';
+      stepsBox.innerHTML = `
+        <h3>Calculation Steps</h3>
+        <div class="formula">${info.formula || ''}</div>
+        <ol>${steps}</ol>
+        ${matches ? `<div class="matches"><strong>Why this matches your question:</strong><br>${matches}</div>` : ''}
+      `;
+    }
+
     function showClarification(interpretation, question) {
       clarifyModal.innerHTML = `
         <div class="clarification-overlay">
@@ -919,15 +979,18 @@
         clarifyModal.style.display = 'none';
         renderChart(out.chart_html_base64);
         renderRows(out.rows);
+        renderCalcSteps(out.calc_steps);
       } catch (e) {
         const msg = (e && e.message) ? e.message : String(e);
         chartBox.innerHTML = `
           <div class="error-state">
-            <div class="error-title">❌ Error</div>
+            <div class="error-title">🤔 Can't Answer That</div>
             <div>${msg}</div>
+            <div style="margin-top: 0.75rem; font-size: 0.875rem; opacity: 0.8;">Try one of the sample queries to the left, or rephrase your question.</div>
           </div>
         `;
-        dataBox.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div>Query failed</div></div>';
+        dataBox.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div>Query not available</div></div>';
+        renderCalcSteps(null);
       } finally {
         runBtn.disabled = false;
         btnText.textContent = 'Run Query';

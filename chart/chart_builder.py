@@ -189,14 +189,10 @@ def _build_line_chart(results: List[Dict[str, Any]], metric_name: str, intent: D
 def _build_bar_chart(results: List[Dict[str, Any]], metric_name: str, intent: Dict[str, Any], show_rep_breakdown: bool = False) -> go.Figure:
     """Build a bar chart for group_by dimension comparisons."""
     group_by = intent.get("group_by", "Category")
-    
-    # Auto-detect if we should show rep breakdown:
-    # If grouping by region AND we have a derived expression about sales reps, fetch detailed data
-    derived_expr = intent.get("derived_expression", "")
-    has_rep_metric = "sales_rep_id" in derived_expr or "rep_name" in derived_expr
-    
-    if group_by == "region" and has_rep_metric:
-        print(f"[CHART] Auto-detected rep breakdown query, showing grouped bars")
+
+    # Only render grouped rep breakdown when explicitly requested via flag/LLM hint
+    if show_rep_breakdown and group_by == "region":
+        print(f"[CHART] show_rep_breakdown=True → grouped bar by rep")
         return _build_grouped_bar_by_rep(results, metric_name, intent)
     
     categories = [r.get("group_col", f"Row {i}") for i, r in enumerate(results)]
