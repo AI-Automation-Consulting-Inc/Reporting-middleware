@@ -1,0 +1,1289 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Automation Consulting Inc's Reporting Middleware Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #3d9b7f;
+      --primary-hover: #2f7d66;
+      --primary-light: #e8f5f1;
+      --accent: #4a7c59;
+      --success: #28a745;
+      --danger: #dc3545;
+      --warning: #ffc107;
+      --bg-primary: #ffffff;
+      --bg-secondary: #f5f0e8;
+      --bg-tertiary: #e9e4d9;
+      --text-primary: #212529;
+      --text-secondary: #6c757d;
+      --text-muted: #adb5bd;
+      --border: #dee2e6;
+      --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --transition: all 0.2s ease;
+    }
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #f5f0e8 0%, #e9e4d9 100%);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    
+    /* Header */
+    header {
+      background: var(--bg-primary);
+      border-bottom: 1px solid var(--border);
+      padding: 1.5rem 2rem;
+      box-shadow: var(--shadow-sm);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #000000;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .logo-img {
+      height: 48px;
+      width: auto;
+    }
+    
+    .header-subtitle {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      margin-top: 0.25rem;
+    }
+    
+    /* Main Container */
+    main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    
+    /* Cards */
+    .card {
+      background: var(--bg-primary);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      padding: 1.5rem;
+      transition: var(--transition);
+    }
+    
+    .card:hover {
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .card-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    
+    /* Query Section */
+    .query-section {
+      position: sticky;
+      top: 85px;
+      z-index: 90;
+    }
+    
+    .search-container {
+      position: relative;
+      margin-bottom: 1rem;
+    }
+    
+    .search-icon {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+    
+    input[type="text"] {
+      width: 100%;
+      padding: 0.875rem 1rem 0.875rem 2.75rem;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-md);
+      font-size: 1rem;
+      font-family: inherit;
+      transition: var(--transition);
+      background: var(--bg-primary);
+    }
+    
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-light);
+    }
+    
+    /* Buttons */
+    button {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      font-family: inherit;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    
+    .btn-primary:hover:not(:disabled) {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+    }
+    
+    .btn-success {
+      background: var(--success);
+      color: white;
+    }
+    
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+    
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    
+    .btn-group {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    /* Suggestion Chips */
+    .suggestions {
+      margin-top: 0.75rem;
+    }
+    .suggestions-title {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.5rem;
+    }
+    .suggestion-chip {
+      display: inline-block;
+      padding: 0.4rem 0.7rem;
+      margin: 0 0.5rem 0.5rem 0;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 0.8rem;
+      background: var(--bg-primary);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .suggestion-chip:hover {
+      background: var(--primary-light);
+      border-color: var(--primary);
+    }
+    
+    /* Grid Layout */
+    .results-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+    
+    @media (min-width: 1024px) {
+      .results-grid {
+        grid-template-columns: 2fr 1fr;
+      }
+    }
+    
+    /* Chart Container */
+    .chart-container {
+      min-height: 500px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    iframe {
+      width: 100%;
+      height: 500px;
+      border: none;
+      border-radius: var(--radius-md);
+    }
+    
+    /* Table */
+    .table-container {
+      overflow-x: auto;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    
+    th {
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      font-weight: 600;
+      text-align: left;
+      padding: 0.75rem 1rem;
+      position: sticky;
+      top: 0;
+      border-bottom: 2px solid var(--border);
+    }
+    
+    td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    tr:hover {
+      background: var(--bg-secondary);
+    }
+    
+    /* Clarification Modal */
+    .clarification-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      animation: fadeIn 0.2s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    .clarification-modal {
+      background: var(--bg-primary);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      max-width: 600px;
+      width: 90%;
+      box-shadow: var(--shadow-lg);
+      animation: slideUp 0.3s ease;
+    }
+    
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    
+    .modal-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+    }
+    
+    .interpretation-box {
+      background: var(--primary-light);
+      border-left: 4px solid var(--primary);
+      padding: 1rem;
+      border-radius: var(--radius-md);
+      margin: 1rem 0;
+      font-style: italic;
+      color: var(--text-primary);
+    }
+    
+    .modal-question {
+      font-weight: 600;
+      margin: 1rem 0;
+      color: var(--text-primary);
+    }
+    
+    .modal-actions {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    
+    /* Empty States */
+    .empty-state {
+      text-align: center;
+      padding: 3rem 2rem;
+      color: var(--text-secondary);
+    }
+    
+    .empty-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+    
+    /* Loading State */
+    .loading {
+      display: inline-block;
+      width: 1rem;
+      height: 1rem;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+    }
+    
+    .badge-success {
+      background: #d4edda;
+      color: #155724;
+    }
+    
+    .badge-primary {
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+    
+    /* Error State */
+    .error-state {
+      background: #f8d7da;
+      border: 1px solid #f5c6cb;
+      color: #721c24;
+      padding: 1rem;
+      border-radius: var(--radius-md);
+    }
+    
+    .error-title {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    
+    /* Database Info */
+    .db-info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    
+    .info-card {
+      background: var(--bg-secondary);
+      padding: 1rem;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+    }
+    
+    .info-card-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+
+    /* Scroll helpers for long lists */
+    .scroll-card {
+      max-height: 240px;
+      overflow-y: auto;
+    }
+    .scroll-card::-webkit-scrollbar {
+      width: 8px;
+    }
+    .scroll-card::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+    
+    .info-card-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    
+    .info-list {
+      list-style: none;
+      padding: 0;
+      margin: 0.5rem 0 0 0;
+    }
+    
+    .info-list li {
+      padding: 0.5rem;
+      margin: 0.25rem 0;
+      background: var(--bg-primary);
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .info-list li strong {
+      color: var(--text-primary);
+    }
+    
+    .info-list li span {
+      color: var(--text-secondary);
+      font-size: 0.75rem;
+    }
+
+    .metric-tag {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 600;
+      margin-left: 0.5rem;
+    }
+    .metric-action {
+      margin-left: 0.75rem;
+      font-size: 0.75rem;
+      color: var(--accent);
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .metric-formula {
+      margin-top: 0.5rem;
+      padding: 0.5rem;
+      background: var(--bg-primary);
+      border: 1px dashed var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 0.8rem;
+      white-space: pre-wrap;
+    }
+    .hidden { display: none; }
+    
+    .sample-queries {
+      margin-top: 1rem;
+    }
+    
+    .sample-query {
+      background: var(--bg-primary);
+      padding: 0.75rem 1rem;
+      margin: 0.5rem 0;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: var(--transition);
+      font-size: 0.875rem;
+    }
+    
+    .sample-query:hover {
+      background: var(--primary-light);
+      border-color: var(--primary);
+      transform: translateX(4px);
+    }
+    
+    .sample-category {
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-top: 1rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.875rem;
+    }
+    
+    .collapsible {
+      cursor: pointer;
+      user-select: none;
+    }
+    
+    .collapsible::before {
+      content: '▼ ';
+      display: inline-block;
+      transition: transform 0.2s;
+    }
+    
+    .collapsible.collapsed::before {
+      transform: rotate(-90deg);
+    }
+    
+    .collapsible-content {
+      max-height: 1000px;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    
+    .collapsible-content.hidden {
+      max-height: 0;
+    }
+    
+    .description-box {
+      background: linear-gradient(135deg, var(--primary-light) 0%, #f0f9f6 100%);
+      border-left: 4px solid var(--primary);
+      padding: 1.25rem;
+      border-radius: var(--radius-md);
+      margin-bottom: 1.5rem;
+      line-height: 1.8;
+      color: var(--text-primary);
+    }
+    
+    .description-box h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 0.75rem;
+    }
+    
+    .description-box p {
+      margin: 0.5rem 0;
+      font-size: 0.95rem;
+    }
+    
+    .description-box strong {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* Calculation steps */
+    .calc-steps {
+      margin-top: 1rem;
+      padding: 1rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: var(--bg-secondary);
+    }
+
+    .calc-steps h3 {
+      margin-bottom: 0.5rem;
+      font-size: 1rem;
+      color: var(--text-primary);
+    }
+
+    .calc-steps .formula {
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+      font-size: 0.95rem;
+    }
+
+    .calc-steps ol {
+      padding-left: 1.25rem;
+      margin: 0.5rem 0 0.75rem 0;
+    }
+
+    .calc-steps li {
+      margin: 0.25rem 0;
+      color: var(--text-primary);
+    }
+
+    .calc-steps .matches {
+      margin-top: 0.5rem;
+      padding: 0.75rem;
+      background: var(--bg-primary);
+      border-radius: var(--radius-sm);
+      border: 1px dashed var(--border);
+      font-size: 0.9rem;
+    }
+
+    /* Insights Panel */
+    .insights-panel {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+    }
+    .insights-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .insight-section {
+      margin: 0.75rem 0;
+    }
+    .insight-section-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .insight-item {
+      padding: 0.5rem;
+      margin: 0.25rem 0;
+      background: var(--bg-primary);
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+    .insight-bullet {
+      color: var(--primary);
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+
+    /* Intro sections */
+    .intro-section {
+      background: linear-gradient(135deg, var(--primary-light) 0%, #ffffff 100%);
+      padding: 1.5rem;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--primary);
+      margin-bottom: 1.5rem;
+    }
+    .intro-headline {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 0.75rem;
+    }
+    .intro-body {
+      font-size: 0.95rem;
+      line-height: 1.7;
+      color: var(--text-primary);
+    }
+    .intro-body p {
+      margin: 0.5rem 0;
+    }
+    .intro-body em {
+      background: var(--bg-primary);
+      padding: 0.15rem 0.4rem;
+      border-radius: var(--radius-sm);
+      font-style: normal;
+      font-family: monospace;
+    }
+    .highlight-pill {
+      background: var(--primary);
+      color: white;
+      padding: 0.75rem 1.25rem;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      text-align: center;
+      margin: 1rem 0;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <div>
+        <h1>
+          <img src="https://assets.zyrosite.com/mv042PGb6XUaQgwG/logo-dWxwB8vE60F7LV5X.svg" alt="Logo" class="logo-img" />
+          <span>AI Automation Consulting Inc</span>
+        </h1>
+        <div class="header-subtitle">Reporting Middleware Demo - Natural Language SQL Engine</div>
+      </div>
+      <div class="badge badge-success">Live</div>
+    </div>
+  </header>
+  
+  <main>
+    <!-- What We Solve Section -->
+    <section class="intro-section">
+      <div class="intro-headline">Stop Building Custom Reports. Start Asking Questions.</div>
+      <div class="intro-body">
+        <p><strong>The Problem:</strong> Your team needs dozens of reports—revenue by region, top products, rep performance, pipeline trends. Each one requires writing SQL, building visualizations, deploying dashboards, and maintaining as schema changes.</p>
+        <p><strong>Reports are never enough.</strong> As soon as you ship one, three more requests arrive.</p>
+        <p><strong>The Solution:</strong> Natural language analytics middleware that turns any question into validated SQL + charts instantly. No coding, no waiting, no backlog.</p>
+        <p style="margin-top: 1rem;">Simply type: <em>"revenue by region last 6 months"</em> → Get data + chart + <strong style="color: var(--primary); background: var(--primary-light); padding: 0.2rem 0.4rem; border-radius: 4px;">AI insights</strong> instantly.</p>
+        <p style="margin-top: 0.75rem; font-size: 0.9rem; color: var(--accent);"><strong>✨ Bonus:</strong> Every result includes AI-powered insights—key findings, trends, anomalies, and recommendations extracted from your data automatically.</p>
+      </div>
+    </section>
+
+    <!-- Database Info Section -->
+    <section class="card">
+      <div class="card-header">
+        <h2 class="card-title collapsible" id="dbInfoToggle">Demo Database & Usage Guide</h2>
+        <span class="badge badge-primary" id="dbStatusBadge">Loading...</span>
+      </div>
+      <div id="dbInfoContent" class="collapsible-content">
+        <div id="dbInfo" class="db-info-grid">
+          <div class="info-card">
+            <div class="info-card-title">Loading database information...</div>
+          </div>
+        </div>
+        
+        <div style="margin-top: 1.5rem;">
+          <h3 class="card-title" style="font-size: 1rem; margin-bottom: 0.75rem;">Sample Queries to Try</h3>
+          <div id="sampleQueries"></div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Query Section -->
+    <section class="card query-section">
+      <div class="search-container">
+        <svg class="search-icon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+        </svg>
+        <input id="q" type="text" placeholder="Ask anything... e.g., revenue by product for EMEA region last 6 months" />
+      </div>
+      <button id="runBtn" class="btn-primary">
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+          <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+          <path d="M6.271 5.055a.5.5 0 0 1 .52.038l3.5 2.5a.5.5 0 0 1 0 .814l-3.5 2.5A.5.5 0 0 1 6 10.5v-5a.5.5 0 0 1 .271-.445z"/>
+        </svg>
+        <span id="btnText">Run Query</span>
+      </button>
+      <div class="suggestions">
+        <div class="suggestions-title">Popular questions:</div>
+        <div id="quickSuggestions"></div>
+      </div>
+    </section>
+
+    <!-- Results Grid -->
+    <div class="results-grid">
+      <!-- Chart Section -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Chart</h2>
+        </div>
+        <div id="chartBox" class="chart-container">
+          <div class="empty-state">
+            <div class="empty-icon">📈</div>
+            <div>Run a query to visualize your data</div>
+          </div>
+        </div>
+        <div id="stepsBox" class="calc-steps" style="display:none"></div>
+        <div id="insightsBox" class="insights-panel" style="display:none"></div>
+      </div>
+
+      <!-- Data Section -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Data</h2>
+        </div>
+        <div id="dataBox" class="table-container">
+          <div class="empty-state">
+            <div class="empty-icon">📋</div>
+            <div>Query results will appear here</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Clarification Modal (hidden by default) -->
+    <div id="clarifyModal" style="display:none"></div>
+  </main>
+
+  <script>
+    console.log('[DEBUG] Script started');
+    
+    const qEl = document.getElementById('q');
+    const runBtn = document.getElementById('runBtn');
+    const btnText = document.getElementById('btnText');
+    const chartBox = document.getElementById('chartBox');
+    const dataBox = document.getElementById('dataBox');
+    const stepsBox = document.getElementById('stepsBox');
+    const clarifyModal = document.getElementById('clarifyModal');
+    const dbInfo = document.getElementById('dbInfo');
+    const sampleQueries = document.getElementById('sampleQueries');
+    const dbStatusBadge = document.getElementById('dbStatusBadge');
+    const dbInfoToggle = document.getElementById('dbInfoToggle');
+    const dbInfoContent = document.getElementById('dbInfoContent');
+
+    console.log('[DEBUG] Elements:', {dbInfo, sampleQueries, dbStatusBadge});
+
+    let lastQuestion = '';
+    
+    // Toggle database info section
+    dbInfoToggle.addEventListener('click', () => {
+      dbInfoToggle.classList.toggle('collapsed');
+      dbInfoContent.classList.toggle('hidden');
+    });
+
+    // Load database information on page load
+    async function loadDatabaseInfo() {
+      try {
+        const res = await fetch('/api/database-info');
+        const data = await res.json();
+
+        if (!res.ok || data.error) {
+          const msg = data && data.error ? data.error : `Request failed with status ${res.status}`;
+          dbInfo.innerHTML = `<div class="error-state"><div class="error-title">Error</div>${msg}</div>`;
+          dbStatusBadge.textContent = 'Error';
+          dbStatusBadge.className = 'badge badge-danger';
+          return;
+        }
+
+        const ctx = data.business_context || {};
+        const tables = Array.isArray(data.tables) ? data.tables : [];
+        const factTable = tables.find(t => t.name === 'fact_sales_pipeline');
+        const regions = (ctx.regions && ctx.regions.length) ? ctx.regions : ['AMER', 'EMEA', 'APAC'];
+        const dealCount = Number(ctx.deal_count || 0);
+        const productCount = Number(ctx.product_count || 0);
+        const salesRepCount = Number(ctx.sales_rep_count || 0);
+        const customerCount = Number(ctx.customer_count || 0);
+
+        let html = '';
+
+        html += `
+          <div class="description-box" style="grid-column: 1 / -1; background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%); padding: 1.25rem; border-radius: 8px; border: 1px solid var(--border);">
+            <p style="margin: 0.75rem 0 0.5rem 0;"><strong>Business Context:</strong></p>
+            <ul class="description-list">
+              <li><strong>${dealCount.toLocaleString()} deals</strong> tracked across <strong>${regions.join(', ')}</strong></li>
+              <li><strong>Regions (geo_cluster):</strong> ${regions.join(', ')}</li>
+              <li><strong>${salesRepCount.toLocaleString()} sales reps</strong> selling <strong>${productCount.toLocaleString()} products</strong> to <strong>${customerCount.toLocaleString()} customers</strong></li>
+              <li>Metrics include: revenue, ARR, ACV, pipeline value, deal counts, margins</li>
+              <li><strong>Data at a glance:</strong> 1,000 deals · 12 products · 25 customers · 10 reps</li>
+              <li><strong>Example values:</strong> region = [${regions.join(', ')}]; product_category ≈ 12 categories (Analytics, Finance, Navigation...); industry ≈ SaaS, Manufacturing, Retail, Healthcare; pipeline_stage = [Prospecting, Qualification, Proposal, Negotiation, Closed Won/Lost]</li>
+            </ul>
+          </div>
+        `;
+
+        if (factTable && factTable.date_info) {
+          html += `
+            <div class="highlight-pill" style="grid-column: 1 / -1; font-size: 0.95rem;">
+              📅 Data Coverage: ${factTable.date_info.min_date} to ${factTable.date_info.max_date}
+            </div>
+          `;
+        }
+
+        html += `
+          <div class="info-card" style="grid-column: 1 / -1; background: #fff3cd; border-color: #ffc107;">
+            <div class="info-card-title" style="color: #856404;">⚠️ Date Range Support</div>
+            <p style="font-size: 0.875rem; margin: 0.5rem 0;">
+              <strong>Predefined ranges:</strong> last_3_months, last_6_months, last_12_months, last_24_months, last_month, this_month<br>
+              <strong>Custom periods:</strong> "Jan 1 to Jan 15", "2025-01-01 to 2025-03-31", "Q1 2025", "last 90 days", "year to date"
+            </p>
+            <p style="font-size: 0.85rem; margin: 0.5rem 0; font-style: italic;">
+              Examples: "revenue last 6 months", "deals this month", "trend Q1 2025"
+            </p>
+          </div>
+        `;
+
+        html += `
+          <div class="info-card">
+            <div class="info-card-title">Total Records</div>
+            <div class="info-card-value">${Number(data.total_rows || 0).toLocaleString()}</div>
+          </div>
+        `;
+
+        const metrics = data.metrics || {};
+        const metricNames = Object.keys(metrics);
+        html += `
+          <div class="info-card scroll-card" style="grid-column: 1 / -1;">
+            <div class="info-card-title">Available Metrics</div>
+            <p style="font-size: 0.875rem; margin-top: 0.5rem; line-height: 1.8;">${metricNames.join(', ')}</p>
+          </div>
+        `;
+
+        const dimensions = data.dimensions || {};
+        html += `
+          <div class="info-card scroll-card" style="grid-column: 1 / -1;">
+            <div class="info-card-title">Available Dimensions (Filters & Group By)</div>
+            <ul class="info-list">
+              ${Object.entries(dimensions).map(([key, value]) => `<li><strong>${key}</strong> <span>${value}</span></li>`).join('')}
+            </ul>
+          </div>
+        `;
+
+        const dateRanges = data.date_ranges || {};
+        if (Object.keys(dateRanges).length) {
+          html += `
+            <div class="info-card scroll-card" style="grid-column: 1 / -1;">
+              <div class="info-card-title">Supported Date Ranges</div>
+              <ul class="info-list">
+                ${Object.entries(dateRanges).map(([key, value]) => `<li><strong>${key}</strong> <span>${value} days</span></li>`).join('')}
+              </ul>
+            </div>
+          `;
+        }
+
+        html += `
+          <div class="info-card scroll-card" style="grid-column: 1 / -1;">
+            <div class="info-card-title">Database Tables</div>
+            <ul class="info-list">
+              ${tables.map(table => `<li><strong>${table.name}</strong> <span>${Number(table.row_count || 0).toLocaleString()} rows</span></li>`).join('')}
+            </ul>
+          </div>
+        `;
+
+        dbInfo.innerHTML = html;
+        dbStatusBadge.textContent = 'Ready';
+        dbStatusBadge.className = 'badge badge-success';
+      } catch (err) {
+        const msg = err && err.message ? err.message : 'Unknown error';
+        dbInfo.innerHTML = `<div class="error-state"><div class="error-title">Error</div>${msg}</div>`;
+        dbStatusBadge.textContent = 'Error';
+        dbStatusBadge.className = 'badge badge-danger';
+      }
+    }
+    
+    // Load sample queries with a safe fallback so UI never looks empty
+    async function loadSampleQueries() {
+      const fallback = {
+        categories: [
+          { category: 'Quick Start', queries: ['total revenue by region', 'monthly revenue trend', 'top sales person'] },
+          { category: 'Products', queries: ['revenue by product', 'top 5 products', 'deal count by product category'] },
+        ]
+      };
+
+      try {
+        const res = await fetch('/api/sample-queries');
+        const data = await res.json();
+        const cats = Array.isArray(data.categories) && data.categories.length ? data.categories : fallback.categories;
+        let html = '';
+        for (const cat of cats) {
+          html += `<div class="sample-category">${cat.category}</div>`;
+          for (const query of cat.queries) {
+            html += `<div class="sample-query" onclick="runSampleQuery('${query.replace(/'/g, "\\'")}')">${query}</div>`;
+          }
+        }
+        sampleQueries.innerHTML = html || '<div class="info-card scroll-card">No sample queries available right now.</div>';
+        // Render quick suggestions under the search bar
+        renderQuickSuggestions(cats);
+      } catch (err) {
+        console.error('Failed to load sample queries:', err);
+        let html = '';
+        for (const cat of fallback.categories) {
+          html += `<div class="sample-category">${cat.category}</div>`;
+          for (const query of cat.queries) {
+            html += `<div class="sample-query" onclick="runSampleQuery('${query.replace(/'/g, "\\'")}')">${query}</div>`;
+          }
+        }
+        sampleQueries.innerHTML = html + '<div class="info-card scroll-card" style="margin-top:0.5rem;">Using fallback sample queries while the service loads.</div>';
+        renderQuickSuggestions(fallback.categories);
+      }
+    }
+
+    function renderQuickSuggestions(categories) {
+      try {
+        const list = [];
+        for (const cat of categories) {
+          for (const q of cat.queries) {
+            list.push(q);
+          }
+        }
+        // pick up to 6 unique suggestions
+        const unique = Array.from(new Set(list));
+        const pick = unique.slice(0, 6);
+        let html = '';
+        for (const q of pick) {
+          html += `<span class="suggestion-chip" onclick="runSampleQuery('${q.replace(/'/g, "\\'")}')">${q}</span>`;
+        }
+        document.getElementById('quickSuggestions').innerHTML = html || '<span class="suggestion-chip">Try: total revenue by region</span>';
+      } catch (e) {
+        document.getElementById('quickSuggestions').innerHTML = '<span class="suggestion-chip">Try: total revenue by region</span>';
+      }
+    }
+    
+    // Run a sample query
+    window.runSampleQuery = function(query) {
+      qEl.value = query;
+      lastQuestion = query;
+      run(query);
+    };
+
+    async function callApi(question, clarification) {
+      const payload = { question };
+      if (clarification) payload.clarification = clarification;
+      const res = await fetch('/api/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      let data;
+      try {
+        data = await res.json();
+      } catch (e) {
+        throw new Error(`Server returned non-JSON response (status ${res.status}).`);
+      }
+      if (!res.ok) {
+        const msg = (data && data.error) ? data.error : `Request failed with status ${res.status}`;
+        throw new Error(msg);
+      }
+      return data;
+    }
+
+    function renderRows(rows) {
+      if (!rows || rows.length === 0) {
+        dataBox.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div>No data returned</div></div>';
+        return;
+      }
+      const cols = Object.keys(rows[0]);
+      let html = '<table><thead><tr>' + cols.map(c=>`<th>${c}</th>`).join('') + '</tr></thead><tbody>';
+      for (const r of rows) {
+        html += '<tr>' + cols.map(c=>`<td>${r[c] ?? ''}</td>`).join('') + '</tr>';
+      }
+      html += '</tbody></table>';
+      dataBox.innerHTML = html;
+    }
+
+    function renderChart(htmlBase64) {
+      if (!htmlBase64) {
+        chartBox.innerHTML = '<div class="empty-state"><div class="empty-icon">📈</div><div>No chart available</div></div>';
+        return;
+      }
+      const html = atob(htmlBase64);
+      const iframe = document.createElement('iframe');
+      iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups');
+      iframe.srcdoc = html;
+      chartBox.innerHTML = '';
+      chartBox.appendChild(iframe);
+      console.log('[CHART] Loaded at', new Date().toISOString());
+    }
+
+    function renderCalcSteps(info) {
+      if (!info) {
+        stepsBox.style.display = 'none';
+        stepsBox.innerHTML = '';
+        return;
+      }
+      const steps = (info.steps || []).map(s => `<li>${s}</li>`).join('');
+      const matches = (info.matches || []).map(m => `<div>• ${m}</div>`).join('');
+      stepsBox.style.display = 'block';
+      stepsBox.innerHTML = `
+        <h3>Calculation Steps</h3>
+        <div class="formula">${info.formula || ''}</div>
+        <ol>${steps}</ol>
+        ${matches ? `<div class="matches"><strong>Why this matches your question:</strong><br>${matches}</div>` : ''}
+      `;
+    }
+
+    function renderInsights(insights) {
+      const insightsBox = document.getElementById('insightsBox');
+      if (!insights || (!insights.key_findings && !insights.trends && !insights.anomalies && !insights.recommendations)) {
+        insightsBox.style.display = 'none';
+        insightsBox.innerHTML = '';
+        return;
+      }
+      
+      let html = `
+        <div class="insights-title">
+          <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+          </svg>
+          AI-Powered Insights
+        </div>
+      `;
+      
+      if (insights.key_findings && insights.key_findings.length) {
+        html += `<div class="insight-section">
+          <div class="insight-section-title">Key Findings</div>`;
+        insights.key_findings.forEach(finding => {
+          html += `<div class="insight-item"><span class="insight-bullet">▪</span><span>${finding}</span></div>`;
+        });
+        html += `</div>`;
+      }
+      
+      if (insights.trends && insights.trends.length) {
+        html += `<div class="insight-section">
+          <div class="insight-section-title">Trends</div>`;
+        insights.trends.forEach(trend => {
+          html += `<div class="insight-item"><span class="insight-bullet">📈</span><span>${trend}</span></div>`;
+        });
+        html += `</div>`;
+      }
+      
+      if (insights.anomalies && insights.anomalies.length) {
+        html += `<div class="insight-section">
+          <div class="insight-section-title">Anomalies</div>`;
+        insights.anomalies.forEach(anomaly => {
+          html += `<div class="insight-item"><span class="insight-bullet">⚠️</span><span>${anomaly}</span></div>`;
+        });
+        html += `</div>`;
+      }
+      
+      if (insights.recommendations && insights.recommendations.length) {
+        html += `<div class="insight-section">
+          <div class="insight-section-title">Recommendations</div>`;
+        insights.recommendations.forEach(rec => {
+          html += `<div class="insight-item"><span class="insight-bullet">💡</span><span>${rec}</span></div>`;
+        });
+        html += `</div>`;
+      }
+      
+      insightsBox.style.display = 'block';
+      insightsBox.innerHTML = html;
+    }
+
+    function showClarification(interpretation, question) {
+      clarifyModal.innerHTML = `
+        <div class="clarification-overlay">
+          <div class="clarification-modal">
+            <div class="modal-title">🤔 Need Clarification</div>
+            <div>
+              <strong>I understand your question as:</strong>
+              <div class="interpretation-box">${interpretation}</div>
+            </div>
+            <div class="modal-question">${question}</div>
+            <div class="modal-actions">
+              <button id="clarYes" class="btn-success">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/>
+                </svg>
+                Yes, that's correct
+              </button>
+              <button id="clarNo" class="btn-danger">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                </svg>
+                No, let me rephrase
+              </button>
+            </div>
+            <div id="clarRetry" style="display:none; margin-top: 1.5rem;">
+              <strong>Please rephrase your question:</strong>
+              <div style="margin-top: 0.75rem;">
+                <input id="clarInput" type="text" placeholder="Enter your question differently" style="margin-bottom: 0.75rem;" />
+                <button id="clarBtn" class="btn-primary">Submit</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      clarifyModal.style.display = 'block';
+
+      const clarYes = document.getElementById('clarYes');
+      const clarNo = document.getElementById('clarNo');
+      const clarRetry = document.getElementById('clarRetry');
+
+      clarYes.onclick = async () => {
+        clarYes.disabled = true;
+        clarifyModal.style.display = 'none';
+        await run(lastQuestion, 'yes');
+      };
+
+      clarNo.onclick = () => {
+        clarNo.disabled = true;
+        clarRetry.style.display = 'block';
+        const clarInput = document.getElementById('clarInput');
+        clarInput.focus();
+      };
+
+      const clarInput = document.getElementById('clarInput');
+      const clarBtn = document.getElementById('clarBtn');
+      const handler = async () => {
+        const ans = clarInput.value.trim();
+        if (!ans) return;
+        clarBtn.disabled = true;
+        clarifyModal.style.display = 'none';
+        lastQuestion = ans;
+        await run(ans, null);
+      };
+      clarBtn.onclick = handler;
+      clarInput.onkeydown = (e) => { if (e.key === 'Enter') handler(); };
+    }
+
+    async function run(question, clarification) {
+      runBtn.disabled = true;
+      btnText.innerHTML = '<span class="loading"></span> Processing...';
+      
+      try {
+        const out = await callApi(question, clarification);
+        
+        if (out.clarification_required) {
+          const interpretation = out.interpretation || '';
+          const clarQuestion = out.question || out.message || 'Is this correct?';
+          showClarification(interpretation, clarQuestion);
+          return;
+        }
+        
+        clarifyModal.style.display = 'none';
+        renderChart(out.chart_html_base64);
+        renderRows(out.rows);
+        renderCalcSteps(out.calc_steps);
+        renderInsights(out.insights);
+      } catch (e) {
+        const msg = (e && e.message) ? e.message : String(e);
+        chartBox.innerHTML = `
+          <div class="error-state">
+            <div class="error-title">🤔 Can't Answer That</div>
+            <div>${msg}</div>
+            <div style="margin-top: 0.75rem; font-size: 0.875rem; opacity: 0.8;">Try one of the sample queries to the left, or rephrase your question.</div>
+          </div>
+        `;
+        dataBox.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div>Query not available</div></div>';
+        renderCalcSteps(null);
+        renderInsights(null);
+      } finally {
+        runBtn.disabled = false;
+        btnText.textContent = 'Run Query';
+      }
+    }
+
+    runBtn.addEventListener('click', async () => {
+      const question = qEl.value.trim();
+      if (!question) return;
+      lastQuestion = question;
+      await run(question);
+    });
+
+    qEl.addEventListener('keydown', async (e) => {
+      if (e.key === 'Enter') { runBtn.click(); }
+    });
+    
+    // Load database info and samples on page load
+    console.log('About to load database info and sample queries...');
+    try {
+      loadDatabaseInfo();
+      loadSampleQueries();
+      console.log('Functions called successfully');
+    } catch(e) {
+      console.error('Error calling functions:', e);
+    }
+  </script>
+</body>
+</html>

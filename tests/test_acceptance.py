@@ -159,6 +159,30 @@ def test_group_by_query_execution():
     assert "metric" in rows[0], "Result should have metric column"
 
 
+def test_product_category_grouping_executes():
+    """Execute a product category grouping query to ensure category mapping works."""
+    from nlp.llm_intent_parser import parse_intent_with_llm
+    from validation.validator import validate_intent
+    from builder.sql_builder import build_sql
+    from sqlalchemy import create_engine
+
+    config = json.loads(Path("config_store/tenant1.json").read_text(encoding="utf-8-sig"))
+
+    intent = parse_intent_with_llm("revenue by product category for last 12 months", config)
+    validated = validate_intent(intent, config)
+    sel, params = build_sql(validated, config)
+
+    engine = create_engine('sqlite:///enhanced_sales.db')
+    conn = engine.connect()
+    res = conn.execute(sel, params)
+    rows = [dict(r._mapping) for r in res]
+    conn.close()
+
+    assert len(rows) > 0, "Category grouping should return rows"
+    assert "group_col" in rows[0], "Result should include group_col"
+    assert "metric" in rows[0], "Result should include metric"
+
+
 def test_date_normalization():
     """Verify date phrase normalization works."""
     from nlp.llm_intent_parser import parse_intent_with_llm

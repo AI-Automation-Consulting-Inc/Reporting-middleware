@@ -98,10 +98,15 @@ def build_sql(intent: Dict[str, Any], config: Dict[str, Any], db_type: str = "sq
 
     strategy = _determine_strategy(intent)
 
+    # Support ephemeral derived expressions without changing config
+    derived_expr = intent.get("derived_expression")
     metric_name = intent["metric"]
-    if metric_name not in config.get("metrics", {}):
-        raise SQLBuilderError(f"Unknown metric: {metric_name}")
-    metric_formula = config["metrics"][metric_name]
+    if derived_expr:
+        metric_formula = derived_expr
+    else:
+        if metric_name not in config.get("metrics", {}):
+            raise SQLBuilderError(f"Unknown metric: {metric_name}")
+        metric_formula = config["metrics"][metric_name]
 
     fact_table = config["fact_table"]
     date_column = config["date_column"]
@@ -129,14 +134,37 @@ def build_sql(intent: Dict[str, Any], config: Dict[str, Any], db_type: str = "sq
                 fact_cols = []
 
     # map group_by to actual column name from config
+    # Support both string and array group_by
     group_by = intent.get("group_by")
-    # treat the special 'month' group_by as a temporal expression, not a column
-    group_col = None if group_by == "month" else (_map_dimension(group_by, config) if group_by else None)
+    if isinstance(group_by, list):
+        # Multi-dimensional grouping: map each dimension
+        group_cols = []
+        for dim in group_by:
+            if dim == "month":
+                group_cols.append("month")  # special temporal marker
+            else:
+                mapped = _map_dimension(dim, config)
+                group_cols.append(mapped if mapped else dim)
+    elif group_by:
+        # Single dimension grouping
+        if group_by == "month":
+            group_cols = ["month"]
+        else:
+            mapped_col = _map_dimension(group_by, config)
+            group_cols = [mapped_col if mapped_col else group_by]
+    else:
+        group_cols = []
+    
+    # For legacy code that uses group_col (singular), extract first dimension if not "month"
+    group_col = None if not group_cols or group_cols[0] == "month" else group_cols[0]
 
     # choose an aggregation expression for the requested metric
     mf = metric_formula.strip()
     mf_upper = mf.upper()
-    if mf_upper.startswith("COUNT("):
+    if derived_expr:
+        # Use provided derived expression verbatim, avoid double-wrapping
+        metric_expr = literal_column(derived_expr).label("metric")
+    elif mf_upper.startswith("COUNT("):
         # handle COUNT(*) or COUNT(col)
         inner = mf[mf.find("(") + 1: mf.rfind(")")].strip()
         if inner == "*" or inner == "":
@@ -215,6 +243,135 @@ def build_sql(intent: Dict[str, Any], config: Dict[str, Any], db_type: str = "sq
         if group_col:
             group_items.append(literal_column(f"f.{group_col}"))
         sel = sel.group_by(*group_items).order_by(month_expr)
+
+    elif strategy in ("multi_trend", "multi_group"):
+        # Multi-dimensional grouping: e.g., [\"sales_rep\", \"month\"]
+        # Build select columns for each group dimension
+        select_cols = []
+        group_exprs = []
+        order_cols = []
+        
+        # Month expression if present
+        month_expr = None
+        if "month" in group_cols:
+            month_expr = func.strftime("%Y-%m", literal_column(f"f.{date_column}")).label("month")
+            select_cols.append(month_expr)
+            group_exprs.append(month_expr)
+            order_cols.append(month_expr)
+        
+        # Non-month dimensions
+        dim_tables_needed = {}
+        for col in group_cols:
+            if col == "month":
+                continue  # already handled
+            
+            # Check if dimension is in fact table
+            if col in fact_cols:
+                col_expr = literal_column(f"f.{col}").label(col)
+                select_cols.append(col_expr)
+                group_exprs.append(literal_column(f"f.{col}"))
+                order_cols.append(literal_column(f"f.{col}"))
+            else:
+                # Find dim table for this column
+                dim_table = _find_dim_table_for_column(col, schema) if schema else None
+                if not dim_table and Path("enhanced_sales.db").exists():
+                    with sqlite3.connect(str(Path("enhanced_sales.db"))) as conn:
+                        cur = conn.cursor()
+                        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'dim_%'")
+                        for (t,) in cur.fetchall():
+                            cur.execute(f"PRAGMA table_info('{t}')")
+                            cols = [r[1] for r in cur.fetchall()]
+                            if col in cols:
+                                dim_table = t
+                                break
+                
+                if dim_table:
+                    # Assign alias for this dim table
+                    if dim_table not in dim_tables_needed:
+                        dim_tables_needed[dim_table] = {"alias": f"d{len(dim_tables_needed)}", "column": col}
+                    alias = dim_tables_needed[dim_table]["alias"]
+                    col_expr = literal_column(f"{alias}.{col}").label(col)
+                    select_cols.append(col_expr)
+                    group_exprs.append(literal_column(f"{alias}.{col}"))
+                    order_cols.append(literal_column(f"{alias}.{col}"))
+                else:
+                    # Fallback: assume it's on fact table
+                    col_expr = literal_column(f"f.{col}").label(col)
+                    select_cols.append(col_expr)
+                    group_exprs.append(literal_column(f"f.{col}"))
+                    order_cols.append(literal_column(f"f.{col}"))
+        
+        # Add metric column
+        select_cols.append(metric_expr)
+        
+        # Build FROM clause with necessary JOINs
+        from_clause = f"{fact_table} f"
+        join_clauses = []
+        
+        # Join dimension tables for group_by columns
+        for dim_table, info in dim_tables_needed.items():
+            join_key = _find_join_key(fact_table, dim_table, fact_cols, schema) if schema else None
+            if not join_key:
+                candidate = dim_table.replace('dim_', '') + '_id'
+                if candidate in fact_cols:
+                    join_key = candidate
+            if join_key:
+                join_clauses.append(f"JOIN {dim_table} {info['alias']} ON f.{join_key} = {info['alias']}.{join_key}")
+        
+        # Build WHERE clauses (date filter + dimension filters)
+        where_clauses = [f"f.{date_column} >= :start_date", f"f.{date_column} <= :end_date"]
+        dim_alias_counter = len(dim_tables_needed)
+        
+        for col, val in (intent.get("filters") or {}).items():
+            mapped = _map_dimension(col, config) or col
+            if mapped in fact_cols:
+                where_clauses.append(f"f.{mapped} = :{col}")
+            else:
+                # Check if filter column is in one of the already-joined dim tables
+                found_in_existing = False
+                for dim_table, info in dim_tables_needed.items():
+                    dim_cols = _get_table_columns(dim_table, schema) if schema else []
+                    if mapped in dim_cols:
+                        where_clauses.append(f"{info['alias']}.{mapped} = :{col}")
+                        found_in_existing = True
+                        break
+                
+                if not found_in_existing:
+                    # Need to join a new dim table for this filter
+                    dim_table = _find_dim_table_for_column(mapped, schema) if schema else None
+                    if not dim_table and Path("enhanced_sales.db").exists():
+                        with sqlite3.connect(str(Path("enhanced_sales.db"))) as conn:
+                            cur = conn.cursor()
+                            cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'dim_%'")
+                            for (t,) in cur.fetchall():
+                                cur.execute(f"PRAGMA table_info('{t}')")
+                                cols = [r[1] for r in cur.fetchall()]
+                                if mapped in cols:
+                                    dim_table = t
+                                    break
+                    
+                    if dim_table:
+                        join_key = _find_join_key(fact_table, dim_table, fact_cols, schema) if schema else None
+                        if not join_key:
+                            candidate = dim_table.replace('dim_', '') + '_id'
+                            if candidate in fact_cols:
+                                join_key = candidate
+                        if join_key:
+                            falias = f"d{dim_alias_counter}"
+                            dim_alias_counter += 1
+                            join_clauses.append(f"JOIN {dim_table} {falias} ON f.{join_key} = {falias}.{join_key}")
+                            where_clauses.append(f"{falias}.{mapped} = :{col}")
+                        else:
+                            where_clauses.append(f"f.{mapped} = :{col}")
+                    else:
+                        where_clauses.append(f"f.{mapped} = :{col}")
+        
+        # Build final SELECT
+        full_from = " ".join([from_clause] + join_clauses)
+        sel = select(*select_cols).select_from(text(full_from))
+        for w in where_clauses:
+            sel = sel.where(text(w))
+        sel = sel.group_by(*group_exprs).order_by(*order_cols)
 
     elif strategy == "summary":
         # Build from/join/where for summary with filters possibly in dim tables
@@ -357,15 +514,58 @@ def build_sql(intent: Dict[str, Any], config: Dict[str, Any], db_type: str = "sq
                 if not join_key:
                     raise SQLBuilderError(f"Cannot determine join key between {fact_table} and {dim_table}")
 
-                sel = select(literal_column(f"d.{group_col}").label("group_col"), metric_expr).select_from(text(f"{fact_table} f JOIN {dim_table} d ON f.{join_key} = d.{join_key}"))
-                sel = sel.where(text(f"f.{date_column} >= :start_date")).where(text(f"f.{date_column} <= :end_date"))
+                # Build from clause with initial join for group_by dimension
+                from_clause = f"{fact_table} f JOIN {dim_table} d ON f.{join_key} = d.{join_key}"
+                additional_joins = []
+                where_clauses = [f"f.{date_column} >= :start_date", f"f.{date_column} <= :end_date"]
+                dim_alias_counter = 0
+                
+                # Process filters - they may live in different dim tables
                 for col, val in (intent.get("filters") or {}).items():
                     mapped = _map_dimension(col, config) or col
                     if mapped in fact_cols:
-                        sel = sel.where(text(f"f.{mapped} = :{col}"))
+                        where_clauses.append(f"f.{mapped} = :{col}")
+                    elif mapped == group_col:
+                        # Filter is on the same dimension we're grouping by
+                        where_clauses.append(f"d.{mapped} = :{col}")
                     else:
-                        # if filter lives in a dim table, attempt to find the dim and join it
-                        sel = sel.where(text(f"d.{mapped} = :{col}"))
+                        # Filter lives in a different dim table - find and join it
+                        filter_dim_table = _find_dim_table_for_column(mapped, schema) if schema else None
+                        
+                        if not filter_dim_table:
+                            db_path = Path("enhanced_sales.db")
+                            if db_path.exists():
+                                with sqlite3.connect(str(db_path)) as conn:
+                                    cur = conn.cursor()
+                                    cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'dim_%'")
+                                    for (t,) in cur.fetchall():
+                                        cur.execute(f"PRAGMA table_info('{t}')")
+                                        cols = [r[1] for r in cur.fetchall()]
+                                        if mapped in cols:
+                                            filter_dim_table = t
+                                            break
+                        
+                        if filter_dim_table and filter_dim_table != dim_table:
+                            # Need to join another dim table for this filter
+                            filter_join_key = _find_join_key(fact_table, filter_dim_table, fact_cols, schema) if schema else None
+                            if not filter_join_key:
+                                candidate = filter_dim_table.replace('dim_', '') + '_id'
+                                if candidate in fact_cols:
+                                    filter_join_key = candidate
+                            if filter_join_key:
+                                falias = f"d{dim_alias_counter}"
+                                dim_alias_counter += 1
+                                additional_joins.append(f"JOIN {filter_dim_table} {falias} ON f.{filter_join_key} = {falias}.{filter_join_key}")
+                                where_clauses.append(f"{falias}.{mapped} = :{col}")
+                            else:
+                                where_clauses.append(f"d.{mapped} = :{col}")
+                        else:
+                            where_clauses.append(f"d.{mapped} = :{col}")
+                
+                full_from = " ".join([from_clause] + additional_joins)
+                sel = select(literal_column(f"d.{group_col}").label("group_col"), metric_expr).select_from(text(full_from))
+                for w in where_clauses:
+                    sel = sel.where(text(w))
                 sel = sel.group_by(literal_column(f"d.{group_col}")).order_by(text("metric DESC"))
 
     # Prepare params and bind them to the Select. Return the Select and params dict.
@@ -387,8 +587,18 @@ def build_sql(intent: Dict[str, Any], config: Dict[str, Any], db_type: str = "sq
 
 
 def _determine_strategy(intent: Dict[str, Any]) -> str:
-    if intent.get("group_by") in (None, "", "month"):
-        if intent.get("group_by") == "month":
+    """Determine SQL build strategy based on group_by structure."""
+    group_by = intent.get("group_by")
+    
+    # Check for array group_by (multi-dimensional)
+    if isinstance(group_by, list):
+        if "month" in group_by:
+            return "multi_trend"  # Multi-dimensional with time
+        return "multi_group"  # Multi-dimensional without time
+    
+    # Single dimension or None
+    if group_by in (None, "", "month"):
+        if group_by == "month":
             return "trend"
         return "summary"
     return "group_by"
