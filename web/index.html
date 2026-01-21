@@ -208,6 +208,31 @@
       display: flex;
       gap: 0.75rem;
     }
+
+    /* Suggestion Chips */
+    .suggestions {
+      margin-top: 0.75rem;
+    }
+    .suggestions-title {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.5rem;
+    }
+    .suggestion-chip {
+      display: inline-block;
+      padding: 0.4rem 0.7rem;
+      margin: 0 0.5rem 0.5rem 0;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 0.8rem;
+      background: var(--bg-primary);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .suggestion-chip:hover {
+      background: var(--primary-light);
+      border-color: var(--primary);
+    }
     
     /* Grid Layout */
     .results-grid {
@@ -420,6 +445,19 @@
       margin-bottom: 0.5rem;
       font-weight: 600;
     }
+
+    /* Scroll helpers for long lists */
+    .scroll-card {
+      max-height: 240px;
+      overflow-y: auto;
+    }
+    .scroll-card::-webkit-scrollbar {
+      width: 8px;
+    }
+    .scroll-card::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
     
     .info-card-value {
       font-size: 1.5rem;
@@ -452,6 +490,33 @@
       color: var(--text-secondary);
       font-size: 0.75rem;
     }
+
+    .metric-tag {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 600;
+      margin-left: 0.5rem;
+    }
+    .metric-action {
+      margin-left: 0.75rem;
+      font-size: 0.75rem;
+      color: var(--accent);
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .metric-formula {
+      margin-top: 0.5rem;
+      padding: 0.5rem;
+      background: var(--bg-primary);
+      border: 1px dashed var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 0.8rem;
+      white-space: pre-wrap;
+    }
+    .hidden { display: none; }
     
     .sample-queries {
       margin-top: 1rem;
@@ -574,6 +639,89 @@
       border: 1px dashed var(--border);
       font-size: 0.9rem;
     }
+
+    /* Insights Panel */
+    .insights-panel {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+    }
+    .insights-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .insight-section {
+      margin: 0.75rem 0;
+    }
+    .insight-section-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .insight-item {
+      padding: 0.5rem;
+      margin: 0.25rem 0;
+      background: var(--bg-primary);
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+    .insight-bullet {
+      color: var(--primary);
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+
+    /* Intro sections */
+    .intro-section {
+      background: linear-gradient(135deg, var(--primary-light) 0%, #ffffff 100%);
+      padding: 1.5rem;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--primary);
+      margin-bottom: 1.5rem;
+    }
+    .intro-headline {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 0.75rem;
+    }
+    .intro-body {
+      font-size: 0.95rem;
+      line-height: 1.7;
+      color: var(--text-primary);
+    }
+    .intro-body p {
+      margin: 0.5rem 0;
+    }
+    .intro-body em {
+      background: var(--bg-primary);
+      padding: 0.15rem 0.4rem;
+      border-radius: var(--radius-sm);
+      font-style: normal;
+      font-family: monospace;
+    }
+    .highlight-pill {
+      background: var(--primary);
+      color: white;
+      padding: 0.75rem 1.25rem;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      text-align: center;
+      margin: 1rem 0;
+    }
   </style>
 </head>
 <body>
@@ -591,10 +739,22 @@
   </header>
   
   <main>
+    <!-- What We Solve Section -->
+    <section class="intro-section">
+      <div class="intro-headline">Stop Building Custom Reports. Start Asking Questions.</div>
+      <div class="intro-body">
+        <p><strong>The Problem:</strong> Your team needs dozens of reports—revenue by region, top products, rep performance, pipeline trends. Each one requires writing SQL, building visualizations, deploying dashboards, and maintaining as schema changes.</p>
+        <p><strong>Reports are never enough.</strong> As soon as you ship one, three more requests arrive.</p>
+        <p><strong>The Solution:</strong> Natural language analytics middleware that turns any question into validated SQL + charts instantly. No coding, no waiting, no backlog.</p>
+        <p style="margin-top: 1rem;">Simply type: <em>"revenue by region last 6 months"</em> → Get data + chart + <strong style="color: var(--primary); background: var(--primary-light); padding: 0.2rem 0.4rem; border-radius: 4px;">AI insights</strong> instantly.</p>
+        <p style="margin-top: 0.75rem; font-size: 0.9rem; color: var(--accent);"><strong>✨ Bonus:</strong> Every result includes AI-powered insights—key findings, trends, anomalies, and recommendations extracted from your data automatically.</p>
+      </div>
+    </section>
+
     <!-- Database Info Section -->
     <section class="card">
       <div class="card-header">
-        <h2 class="card-title collapsible" id="dbInfoToggle">Database Context & Available Data</h2>
+        <h2 class="card-title collapsible" id="dbInfoToggle">Demo Database & Usage Guide</h2>
         <span class="badge badge-primary" id="dbStatusBadge">Loading...</span>
       </div>
       <div id="dbInfoContent" class="collapsible-content">
@@ -627,6 +787,10 @@
         </svg>
         <span id="btnText">Run Query</span>
       </button>
+      <div class="suggestions">
+        <div class="suggestions-title">Popular questions:</div>
+        <div id="quickSuggestions"></div>
+      </div>
     </section>
 
     <!-- Results Grid -->
@@ -643,6 +807,7 @@
           </div>
         </div>
         <div id="stepsBox" class="calc-steps" style="display:none"></div>
+        <div id="insightsBox" class="insights-panel" style="display:none"></div>
       </div>
 
       <!-- Data Section -->
@@ -694,131 +859,174 @@
       try {
         const res = await fetch('/api/database-info');
         const data = await res.json();
-        
-        if (data.error) {
-          dbInfo.innerHTML = `<div class="error-state"><div class="error-title">Error</div>${data.error}</div>`;
+
+        if (!res.ok || data.error) {
+          const msg = data && data.error ? data.error : `Request failed with status ${res.status}`;
+          dbInfo.innerHTML = `<div class="error-state"><div class="error-title">Error</div>${msg}</div>`;
           dbStatusBadge.textContent = 'Error';
           dbStatusBadge.className = 'badge badge-danger';
           return;
         }
-        
-        // Build business description
-        const ctx = data.business_context;
-        const factTable = data.tables.find(t => t.name === 'fact_sales_pipeline');
-        let description = `
-          <div class="description-box">
-            <h3>📊 What's in this database?</h3>
-            <p>
-              This database contains <strong>sales pipeline data</strong> for a B2B software company tracking 
-              <strong>${ctx.deal_count.toLocaleString()} deals</strong> across <strong>${ctx.regions.join(', ')}</strong> regions.
-            </p>
-            <p>
-              The data includes performance metrics for <strong>${ctx.sales_rep_count} sales representatives</strong> 
-              selling <strong>${ctx.product_count} products</strong> to <strong>${ctx.customer_count} customers</strong>`;
-        
-        if (factTable && factTable.date_info) {
-          description += ` over the period from <strong>${factTable.date_info.min_date}</strong> to <strong>${factTable.date_info.max_date}</strong>`;
-        }
-        
-        description += `.
-            </p>
-            <p>
-              You can query this data using natural language to analyze revenue trends, compare sales rep performance, 
-              track deals by product category, identify top performers, and much more!
-            </p>
+
+        const ctx = data.business_context || {};
+        const tables = Array.isArray(data.tables) ? data.tables : [];
+        const factTable = tables.find(t => t.name === 'fact_sales_pipeline');
+        const regions = (ctx.regions && ctx.regions.length) ? ctx.regions : ['AMER', 'EMEA', 'APAC'];
+        const dealCount = Number(ctx.deal_count || 0);
+        const productCount = Number(ctx.product_count || 0);
+        const salesRepCount = Number(ctx.sales_rep_count || 0);
+        const customerCount = Number(ctx.customer_count || 0);
+
+        let html = '';
+
+        html += `
+          <div class="description-box" style="grid-column: 1 / -1; background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%); padding: 1.25rem; border-radius: 8px; border: 1px solid var(--border);">
+            <p style="margin: 0.75rem 0 0.5rem 0;"><strong>Business Context:</strong></p>
+            <ul class="description-list">
+              <li><strong>${dealCount.toLocaleString()} deals</strong> tracked across <strong>${regions.join(', ')}</strong></li>
+              <li><strong>Regions (geo_cluster):</strong> ${regions.join(', ')}</li>
+              <li><strong>${salesRepCount.toLocaleString()} sales reps</strong> selling <strong>${productCount.toLocaleString()} products</strong> to <strong>${customerCount.toLocaleString()} customers</strong></li>
+              <li>Metrics include: revenue, ARR, ACV, pipeline value, deal counts, margins</li>
+              <li><strong>Data at a glance:</strong> 1,000 deals · 12 products · 25 customers · 10 reps</li>
+              <li><strong>Example values:</strong> region = [${regions.join(', ')}]; product_category ≈ 12 categories (Analytics, Finance, Navigation...); industry ≈ SaaS, Manufacturing, Retail, Healthcare; pipeline_stage = [Prospecting, Qualification, Proposal, Negotiation, Closed Won/Lost]</li>
+            </ul>
           </div>
         `;
-        
-        // Build database info display
-        let html = description + `
-          <div class="info-card">
-            <div class="info-card-title">Database</div>
-            <div class="info-card-value">${data.database}</div>
-          </div>
-          <div class="info-card">
-            <div class="info-card-title">Total Records</div>
-            <div class="info-card-value">${data.total_rows.toLocaleString()}</div>
-          </div>
-          <div class="info-card">
-            <div class="info-card-title">Tables</div>
-            <div class="info-card-value">${data.tables.length}</div>
-          </div>
-        `;
-        
-        // Add date range if available (factTable already declared above)
+
         if (factTable && factTable.date_info) {
           html += `
-            <div class="info-card">
-              <div class="info-card-title">Data Period</div>
-              <div style="font-size: 0.875rem; margin-top: 0.5rem;">
-                <strong>${factTable.date_info.min_date}</strong> to<br>
-                <strong>${factTable.date_info.max_date}</strong>
-              </div>
+            <div class="highlight-pill" style="grid-column: 1 / -1; font-size: 0.95rem;">
+              📅 Data Coverage: ${factTable.date_info.min_date} to ${factTable.date_info.max_date}
             </div>
           `;
         }
-        
-        // Add metrics section
+
         html += `
-          <div class="info-card" style="grid-column: 1 / -1;">
-            <div class="info-card-title">Available Metrics</div>
-            <ul class="info-list">
+          <div class="info-card" style="grid-column: 1 / -1; background: #fff3cd; border-color: #ffc107;">
+            <div class="info-card-title" style="color: #856404;">⚠️ Date Range Support</div>
+            <p style="font-size: 0.875rem; margin: 0.5rem 0;">
+              <strong>Predefined ranges:</strong> last_3_months, last_6_months, last_12_months, last_24_months, last_month, this_month<br>
+              <strong>Custom periods:</strong> "Jan 1 to Jan 15", "2025-01-01 to 2025-03-31", "Q1 2025", "last 90 days", "year to date"
+            </p>
+            <p style="font-size: 0.85rem; margin: 0.5rem 0; font-style: italic;">
+              Examples: "revenue last 6 months", "deals this month", "trend Q1 2025"
+            </p>
+          </div>
         `;
-        for (const [key, value] of Object.entries(data.metrics)) {
-          html += `<li><strong>${key}</strong> <span>${typeof value === 'string' && value.length > 30 ? 'computed' : value}</span></li>`;
-        }
-        html += `</ul></div>`;
-        
-        // Add dimensions section
+
         html += `
-          <div class="info-card" style="grid-column: 1 / -1;">
+          <div class="info-card">
+            <div class="info-card-title">Total Records</div>
+            <div class="info-card-value">${Number(data.total_rows || 0).toLocaleString()}</div>
+          </div>
+        `;
+
+        const metrics = data.metrics || {};
+        const metricNames = Object.keys(metrics);
+        html += `
+          <div class="info-card scroll-card" style="grid-column: 1 / -1;">
+            <div class="info-card-title">Available Metrics</div>
+            <p style="font-size: 0.875rem; margin-top: 0.5rem; line-height: 1.8;">${metricNames.join(', ')}</p>
+          </div>
+        `;
+
+        const dimensions = data.dimensions || {};
+        html += `
+          <div class="info-card scroll-card" style="grid-column: 1 / -1;">
             <div class="info-card-title">Available Dimensions (Filters & Group By)</div>
             <ul class="info-list">
+              ${Object.entries(dimensions).map(([key, value]) => `<li><strong>${key}</strong> <span>${value}</span></li>`).join('')}
+            </ul>
+          </div>
         `;
-        for (const [key, value] of Object.entries(data.dimensions)) {
-          html += `<li><strong>${key}</strong> <span>${value}</span></li>`;
+
+        const dateRanges = data.date_ranges || {};
+        if (Object.keys(dateRanges).length) {
+          html += `
+            <div class="info-card scroll-card" style="grid-column: 1 / -1;">
+              <div class="info-card-title">Supported Date Ranges</div>
+              <ul class="info-list">
+                ${Object.entries(dateRanges).map(([key, value]) => `<li><strong>${key}</strong> <span>${value} days</span></li>`).join('')}
+              </ul>
+            </div>
+          `;
         }
-        html += `</ul></div>`;
-        
-        // Add tables section
+
         html += `
-          <div class="info-card" style="grid-column: 1 / -1;">
+          <div class="info-card scroll-card" style="grid-column: 1 / -1;">
             <div class="info-card-title">Database Tables</div>
             <ul class="info-list">
+              ${tables.map(table => `<li><strong>${table.name}</strong> <span>${Number(table.row_count || 0).toLocaleString()} rows</span></li>`).join('')}
+            </ul>
+          </div>
         `;
-        for (const table of data.tables) {
-          html += `<li><strong>${table.name}</strong> <span>${table.row_count.toLocaleString()} rows</span></li>`;
-        }
-        html += `</ul></div>`;
-        
+
         dbInfo.innerHTML = html;
         dbStatusBadge.textContent = 'Ready';
         dbStatusBadge.className = 'badge badge-success';
-        
       } catch (err) {
-        dbInfo.innerHTML = `<div class="error-state"><div class="error-title">Error</div>${err.message}</div>`;
+        const msg = err && err.message ? err.message : 'Unknown error';
+        dbInfo.innerHTML = `<div class="error-state"><div class="error-title">Error</div>${msg}</div>`;
         dbStatusBadge.textContent = 'Error';
         dbStatusBadge.className = 'badge badge-danger';
       }
     }
     
-    // Load sample queries
+    // Load sample queries with a safe fallback so UI never looks empty
     async function loadSampleQueries() {
+      const fallback = {
+        categories: [
+          { category: 'Quick Start', queries: ['total revenue by region', 'monthly revenue trend', 'top sales person'] },
+          { category: 'Products', queries: ['revenue by product', 'top 5 products', 'deal count by product category'] },
+        ]
+      };
+
       try {
         const res = await fetch('/api/sample-queries');
         const data = await res.json();
-        
+        const cats = Array.isArray(data.categories) && data.categories.length ? data.categories : fallback.categories;
         let html = '';
-        for (const cat of data.categories) {
+        for (const cat of cats) {
           html += `<div class="sample-category">${cat.category}</div>`;
           for (const query of cat.queries) {
             html += `<div class="sample-query" onclick="runSampleQuery('${query.replace(/'/g, "\\'")}')">${query}</div>`;
           }
         }
-        
-        sampleQueries.innerHTML = html;
+        sampleQueries.innerHTML = html || '<div class="info-card scroll-card">No sample queries available right now.</div>';
+        // Render quick suggestions under the search bar
+        renderQuickSuggestions(cats);
       } catch (err) {
         console.error('Failed to load sample queries:', err);
+        let html = '';
+        for (const cat of fallback.categories) {
+          html += `<div class="sample-category">${cat.category}</div>`;
+          for (const query of cat.queries) {
+            html += `<div class="sample-query" onclick="runSampleQuery('${query.replace(/'/g, "\\'")}')">${query}</div>`;
+          }
+        }
+        sampleQueries.innerHTML = html + '<div class="info-card scroll-card" style="margin-top:0.5rem;">Using fallback sample queries while the service loads.</div>';
+        renderQuickSuggestions(fallback.categories);
+      }
+    }
+
+    function renderQuickSuggestions(categories) {
+      try {
+        const list = [];
+        for (const cat of categories) {
+          for (const q of cat.queries) {
+            list.push(q);
+          }
+        }
+        // pick up to 6 unique suggestions
+        const unique = Array.from(new Set(list));
+        const pick = unique.slice(0, 6);
+        let html = '';
+        for (const q of pick) {
+          html += `<span class="suggestion-chip" onclick="runSampleQuery('${q.replace(/'/g, "\\'")}')">${q}</span>`;
+        }
+        document.getElementById('quickSuggestions').innerHTML = html || '<span class="suggestion-chip">Try: total revenue by region</span>';
+      } catch (e) {
+        document.getElementById('quickSuggestions').innerHTML = '<span class="suggestion-chip">Try: total revenue by region</span>';
       }
     }
     
@@ -893,6 +1101,63 @@
         <ol>${steps}</ol>
         ${matches ? `<div class="matches"><strong>Why this matches your question:</strong><br>${matches}</div>` : ''}
       `;
+    }
+
+    function renderInsights(insights) {
+      const insightsBox = document.getElementById('insightsBox');
+      if (!insights || (!insights.key_findings && !insights.trends && !insights.anomalies && !insights.recommendations)) {
+        insightsBox.style.display = 'none';
+        insightsBox.innerHTML = '';
+        return;
+      }
+      
+      let html = `
+        <div class="insights-title">
+          <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+          </svg>
+          AI-Powered Insights
+        </div>
+      `;
+      
+      if (insights.key_findings && insights.key_findings.length) {
+        html += `<div class="insight-section">
+          <div class="insight-section-title">Key Findings</div>`;
+        insights.key_findings.forEach(finding => {
+          html += `<div class="insight-item"><span class="insight-bullet">▪</span><span>${finding}</span></div>`;
+        });
+        html += `</div>`;
+      }
+      
+      if (insights.trends && insights.trends.length) {
+        html += `<div class="insight-section">
+          <div class="insight-section-title">Trends</div>`;
+        insights.trends.forEach(trend => {
+          html += `<div class="insight-item"><span class="insight-bullet">📈</span><span>${trend}</span></div>`;
+        });
+        html += `</div>`;
+      }
+      
+      if (insights.anomalies && insights.anomalies.length) {
+        html += `<div class="insight-section">
+          <div class="insight-section-title">Anomalies</div>`;
+        insights.anomalies.forEach(anomaly => {
+          html += `<div class="insight-item"><span class="insight-bullet">⚠️</span><span>${anomaly}</span></div>`;
+        });
+        html += `</div>`;
+      }
+      
+      if (insights.recommendations && insights.recommendations.length) {
+        html += `<div class="insight-section">
+          <div class="insight-section-title">Recommendations</div>`;
+        insights.recommendations.forEach(rec => {
+          html += `<div class="insight-item"><span class="insight-bullet">💡</span><span>${rec}</span></div>`;
+        });
+        html += `</div>`;
+      }
+      
+      insightsBox.style.display = 'block';
+      insightsBox.innerHTML = html;
     }
 
     function showClarification(interpretation, question) {
@@ -980,6 +1245,7 @@
         renderChart(out.chart_html_base64);
         renderRows(out.rows);
         renderCalcSteps(out.calc_steps);
+        renderInsights(out.insights);
       } catch (e) {
         const msg = (e && e.message) ? e.message : String(e);
         chartBox.innerHTML = `
@@ -991,6 +1257,7 @@
         `;
         dataBox.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div>Query not available</div></div>';
         renderCalcSteps(null);
+        renderInsights(null);
       } finally {
         runBtn.disabled = false;
         btnText.textContent = 'Run Query';

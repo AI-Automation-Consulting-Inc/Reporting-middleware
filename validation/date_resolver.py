@@ -5,12 +5,14 @@ Supported inputs:
 - Named ranges defined in tenant config (e.g., "last_12_months").
 - Absolute dates: {"custom": {"start": "2024-01-01", "end": "2024-03-31"}}
 - Relative periods: {"custom": {"period": "2024-Q1"}} or {"custom": {"month": "2024-03"}}
+- Natural language: "Jan 1 to Jan 15", "first quarter 2025", "last 90 days", "year to date"
 """
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
 from typing import Dict, Tuple
 import calendar
+import re
 
 
 class DateResolutionError(ValueError):
@@ -61,6 +63,9 @@ def _resolve_custom_range(custom: Dict) -> Tuple[str, str]:
 
     if "month" in custom:
         return _resolve_month(custom["month"])
+    
+    if "text" in custom:
+        return _parse_natural_language_date(custom["text"])
 
     raise DateResolutionError(f"Unsupported custom date payload: {custom}")
 
@@ -124,6 +129,80 @@ def _add_months(source: date, months: int) -> date:
     month = month % 12 + 1
     day = min(source.day, [31, 29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1])
     return date(year, month, day)
+
+
+def _parse_natural_language_date(text: str) -> Tuple[str, str]:
+    """Parse natural language date expressions like 'Jan 1 to Jan 15', 'Q1 2025', 'last 90 days', 'YTD'."""
+    text_lower = text.lower().strip()
+    today = date.today()
+    
+    # Year to date / YTD
+    if text_lower in ["ytd", "year to date", "year-to-date"]:
+        start = date(today.year, 1, 1)
+        return start.isoformat(), today.isoformat()
+    
+    # Quarter patterns: "Q1 2025", "first quarter 2025", "2025 Q1"
+    quarter_match = re.search(r'(?:q|quarter)\s*(\d)', text_lower)
+    year_match = re.search(r'(20\d{2})', text)
+    if quarter_match:
+        quarter = int(quarter_match.group(1))
+        year = int(year_match.group(1)) if year_match else today.year
+        if quarter not in {1, 2, 3, 4}:
+            raise DateResolutionError(f"Invalid quarter: {quarter}")
+        month = (quarter - 1) * 3 + 1
+        start = date(year, month, 1)
+        end = _end_of_month(_add_months(start, 2))
+        return start.isoformat(), end.isoformat()
+    
+    # Last N days: "last 90 days", "past 30 days"
+    days_match = re.search(r'(?:last|past)\s+(\d+)\s+days?', text_lower)
+    if days_match:
+        days = int(days_match.group(1))
+        start = today - timedelta(days=days)
+        return start.isoformat(), today.isoformat()
+    
+    # "Jan 1 to Jan 15" or "January 1 to January 15"
+    month_names = {
+        'jan': 1, 'january': 1, 'feb': 2, 'february': 2, 'mar': 3, 'march': 3,
+        'apr': 4, 'april': 4, 'may': 5, 'jun': 6, 'june': 6, 'jul': 7, 'july': 7,
+        'aug': 8, 'august': 8, 'sep': 9, 'september': 9, 'oct': 10, 'october': 10,
+        'nov': 11, 'november': 11, 'dec': 12, 'december': 12
+    }
+    
+    # Pattern: "Jan 1 to Jan 15" or "Jan 1 to 15" or "January 1 to January 15"
+    range_pattern = r'([a-z]+)\s+(\d+)\s+to\s+(?:([a-z]+)\s+)?(\d+)'
+    range_match = re.search(range_pattern, text_lower)
+    if range_match:
+        start_month_str = range_match.group(1)
+        start_day = int(range_match.group(2))
+        end_month_str = range_match.group(3) or start_month_str
+        end_day = int(range_match.group(4))
+        
+        start_month = month_names.get(start_month_str)
+        end_month = month_names.get(end_month_str)
+        
+        if not start_month or not end_month:
+            raise DateResolutionError(f"Could not parse month names: {text}")
+        
+        # Assume current year unless specified
+        year = year_match.group(1) if year_match else str(today.year)
+        year = int(year)
+        
+        start = date(year, start_month, start_day)
+        end = date(year, end_month, end_day)
+        
+        if start > end:
+            raise DateResolutionError(f"Start date {start} is after end date {end}")
+        
+        return start.isoformat(), end.isoformat()
+    
+    # ISO date range: "2025-01-01 to 2025-03-31"
+    iso_pattern = r'(\d{4}-\d{2}-\d{2})\s+to\s+(\d{4}-\d{2}-\d{2})'
+    iso_match = re.search(iso_pattern, text)
+    if iso_match:
+        return _validate_dates(iso_match.group(1), iso_match.group(2))
+    
+    raise DateResolutionError(f"Could not parse natural language date: {text}")
 
 
 __all__ = ["resolve_date_range", "DateResolutionError"]

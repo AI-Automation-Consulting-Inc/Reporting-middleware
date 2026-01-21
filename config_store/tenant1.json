@@ -6,7 +6,7 @@
     "industry": "industry",
     "customer_tier": "customer_tier",
     "product_name": "product_name",
-    "product_category": "product_category",
+    "product_category": "category",
     "deal_status": "deal_status",
     "pipeline_stage": "pipeline_stage",
     "country": "country",

@@ -1,5 +1,14 @@
 [
   {
-    "metric": 160220434.1
+    "group_col": "EMEA",
+    "metric": 17558208.7
+  },
+  {
+    "group_col": "AMER",
+    "metric": 16832306.6
+  },
+  {
+    "group_col": "APAC",
+    "metric": 5138630.0
   }
 ]

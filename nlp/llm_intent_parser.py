@@ -57,13 +57,18 @@ SYSTEM_PROMPT = dedent(
         {
             "metric": string,                # one of the tenant metrics
             "filters": { <dimension>: <value>, ... },  # dimensions from tenant config
-            "group_by": string|null,         # a dimension name or "month" for time trends
-            "date_range": string,            # one of the tenant date_ranges
+            "group_by": string|array|null,   # a dimension name, "month" for time trends, OR array like ["sales_rep", "month"] for multi-dimensional analysis
+            "date_range": string,            # one of the tenant date_ranges OR null if custom_date is used
+            "custom_date": {"text": string}|null,  # for custom date ranges like "Q1 2025", "Jan 1 to Jan 15", "last 90 days", etc.
             "derived_expression": string|null  # optional SQL expression for calculated metrics like "average X per Y"
         }
 
     CRITICAL RULES - NO EXCEPTIONS:
-    - You MUST ONLY use metrics, dimensions, and date_ranges that are explicitly listed in the tenant config.
+    - You MUST ONLY use metrics, dimensions that are explicitly listed in the tenant config.
+    - For date ranges: Use either date_range (for predefined ranges) OR custom_date (for custom periods).
+    - Custom date examples: "Q1 2025", "Jan 1 to Jan 15", "2025-01-01 to 2025-03-31", "last 90 days", "year to date", "first quarter 2025"
+    - If using custom_date, set: `"custom_date": {"text": "<user's date phrase>"}, "date_range": null`
+    - If using predefined range, set: `"date_range": "<range_name>", "custom_date": null`
     - NEVER create or invent metric names, dimension names, or filter values that are not in the config.
     - If a user mentions a value not in the config (e.g., a person name, region, or product), you MUST request clarification.
     - DO NOT make assumptions about filter values - if unsure, ask for clarification.
@@ -94,6 +99,11 @@ SYSTEM_PROMPT = dedent(
       * filters: {"region": "<region_value>"}
       * group_by: "<dimension>" (e.g., "sales_rep" for "top sales people")
       * Do NOT add a limit or top_n field
+    - MULTI-DIMENSIONAL GROUPING: For queries with multiple grouping dimensions (e.g., "revenue by sales rep aggregated by month"), use array:
+      * Set group_by to an array: ["<primary_dimension>", "month"] (e.g., ["sales_rep", "month"])
+      * Example: "revenue by sales rep for last 12 months aggregated by month" → {"metric":"revenue","filters":{},"group_by":["sales_rep","month"],"date_range":"last_12_months"}
+      * Example: "deals by product category broken down by region" → {"metric":"deal_count","filters":{},"group_by":["product_category","region"],"date_range":"last_3_months"}
+      * Time dimension ("month") should typically be the LAST element in the array for proper visualization
     - For "average X per Y" queries (e.g., "average revenue per product by region"):
       * Set group_by to the grouping dimension (e.g., "region")
       * Add derived_expression: "SUM(f.<metric_column>) / NULLIF(COUNT(DISTINCT f.<per_dimension_id>), 0)"
@@ -139,6 +149,18 @@ SYSTEM_PROMPT = dedent(
         
         - Input: "average deals per sales person\nClarification: yes, that interpretation is correct"
             Output: {"metric":"deal_count","filters":{},"group_by":null,"date_range":"last_3_months","derived_expression":"COUNT(*) * 1.0 / NULLIF(COUNT(DISTINCT f.sales_rep_id), 0)"}
+        
+        - Input: "revenue by product category Q1 2025"
+            Output: {"metric":"revenue","filters":{},"group_by":"product_category","date_range":null,"custom_date":{"text":"Q1 2025"}}
+        
+        - Input: "deals from Jan 1 to Jan 15"
+            Output: {"metric":"deal_count","filters":{},"group_by":null,"date_range":null,"custom_date":{"text":"Jan 1 to Jan 15"}}
+        
+        - Input: "revenue by sales rep for last 12 months aggregated by month"
+            Output: {"metric":"revenue","filters":{},"group_by":["sales_rep","month"],"date_range":"last_12_months"}
+        
+        - Input: "deals by product category broken down by region"
+            Output: {"metric":"deal_count","filters":{},"group_by":["product_category","region"],"date_range":"last_3_months"}
 
         The user prompt will include a compact tenant config summary and a concise DB schema listing. Use them as authoritative.
         """
@@ -242,6 +264,8 @@ def parse_intent_with_llm(question: str, config: Dict[str, Any]) -> Dict[str, An
         "salesperson": "sales_rep",
         "sales-rep": "sales_rep",
         "rep": "sales_rep",
+        "product category": "product_category",
+        "category": "product_category",
         "customer": "customer_name",
         "last year": "last 12 months",
         "past year": "last 12 months",
@@ -326,8 +350,14 @@ def _validate_llm_response(intent: Dict[str, Any], config: Dict[str, Any]) -> No
             raise RuntimeError(f"LLM returned unsupported dimension: {dim}")
 
     group_by = intent.get("group_by")
-    if group_by and group_by not in dimensions and group_by != "month":
-        raise RuntimeError(f"LLM returned unsupported group_by: {group_by}")
+    if group_by:
+        # Handle both string and array group_by
+        if isinstance(group_by, list):
+            for dim in group_by:
+                if dim not in dimensions and dim != "month":
+                    raise RuntimeError(f"LLM returned unsupported group_by dimension: {dim}")
+        elif group_by not in dimensions and group_by != "month":
+            raise RuntimeError(f"LLM returned unsupported group_by: {group_by}")
 
     date_range = intent.get("date_range")
     if date_range not in date_ranges:

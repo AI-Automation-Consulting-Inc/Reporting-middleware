@@ -62,12 +62,10 @@ def build_chart(
     
     if strategy == "kpi":
         fig = _build_kpi_chart(results, metric_name)
+    elif strategy == "grouped_bar":
+        fig = _build_multi_grouped_bar_chart(results, metric_name, intent)
     elif strategy == "line":
         fig = _build_line_chart(results, metric_name, intent)
-    elif strategy == "grouped_bar":
-        # LLM explicitly requested grouped bars for breakdown
-        print(f"[CHART] Strategy=grouped_bar, forcing show_rep_breakdown=True")
-        fig = _build_bar_chart(results, metric_name, intent, show_rep_breakdown=True)
     elif strategy == "bar":
         print(f"[CHART] Strategy=bar, show_rep_breakdown={show_rep_breakdown}")
         fig = _build_bar_chart(results, metric_name, intent, show_rep_breakdown=show_rep_breakdown)
@@ -106,12 +104,17 @@ def _infer_chart_strategy(intent: Dict[str, Any], results: List[Dict[str, Any]])
     - summary (no group_by) → KPI card
     - trend (group_by='month') → line or area chart
     - group_by dimension → bar chart (or pie if <=6 categories)
+    - multi-dimensional (array group_by) → grouped bar (multi-bar side-by-side)
     """
     group_by = intent.get("group_by")
     
     # Summary metric → KPI
     if not group_by:
         return "kpi"
+    
+    # Multi-dimensional grouping → grouped bars (best for comparison)
+    if isinstance(group_by, list):
+        return "grouped_bar"  # Always use grouped bars for multi-dimensional
     
     # Trend over time → line chart (area optional)
     if group_by == "month":
@@ -347,6 +350,92 @@ def _build_grouped_bar_by_rep(results: List[Dict[str, Any]], metric_name: str, i
         # Fallback to simple bar on any error
         print(f"[CHART] Rep breakdown failed: {e}, falling back to simple bar")
         return _build_bar_chart(results, metric_name, intent, show_rep_breakdown=False)
+
+
+def _build_multi_line_chart(results: List[Dict[str, Any]], metric_name: str, intent: Dict[str, Any]) -> go.Figure:
+    """Build a multi-line chart for time series with multiple dimensions (e.g., sales_rep + month)."""
+    import pandas as pd
+    
+    # Convert results to DataFrame for easier manipulation
+    df = pd.DataFrame(results)
+    
+    # Identify actual column names in the results (excluding 'metric' and 'month')
+    available_cols = [c for c in df.columns if c not in ('metric', 'month')]
+    
+    if not available_cols or "month" not in df.columns:
+        # Fallback to simple line if structure doesn't match
+        return _build_line_chart(results, metric_name, intent)
+    
+    series_col = available_cols[0]  # Use the first non-metric, non-month column as the series dimension
+    
+    fig = go.Figure()
+    
+    # Create one line per unique value in the series dimension
+    for series_value in df[series_col].unique():
+        series_data = df[df[series_col] == series_value].sort_values('month')
+        
+        fig.add_trace(go.Scatter(
+            x=series_data['month'],
+            y=series_data['metric'],
+            mode='lines+markers',
+            name=str(series_value),
+            hovertemplate=f'<b>{series_value}</b><br>Month: %{{x}}<br>{metric_name}: %{{y:,.2f}}<extra></extra>',
+        ))
+    
+    fig.update_layout(
+        title=f"{metric_name.replace('_', ' ').title()} by {series_col.replace('_', ' ').title()} Over Time",
+        xaxis_title="Month",
+        yaxis_title=metric_name.replace("_", " ").title(),
+        hovermode='x unified',
+        legend_title=series_col.replace("_", " ").title(),
+    )
+    
+    return fig
+
+
+def _build_multi_grouped_bar_chart(results: List[Dict[str, Any]], metric_name: str, intent: Dict[str, Any]) -> go.Figure:
+    """Build a grouped bar chart for multi-dimensional categorical data (e.g., product_category + region)."""
+    import pandas as pd
+    
+    df = pd.DataFrame(results)
+    
+    # Identify actual columns in results (excluding 'metric')
+    available_cols = [c for c in df.columns if c != 'metric']
+    
+    if len(available_cols) < 2:
+        # Fallback to simple bar if not truly multi-dimensional
+        return _build_bar_chart(results, metric_name, intent)
+    
+    # Use first column as X-axis, second as bar grouping
+    x_dim = available_cols[0]
+    series_dim = available_cols[1]
+    
+    fig = go.Figure()
+    
+    # Create one bar series per unique value in the series dimension
+    for series_value in df[series_dim].unique():
+        series_data = df[df[series_dim] == series_value].sort_values('metric', ascending=False)
+        
+        fig.add_trace(go.Bar(
+            name=str(series_value),
+            x=series_data[x_dim],
+            y=series_data['metric'],
+            text=series_data['metric'],
+            texttemplate='%{text:,.2f}',
+            textposition='outside',
+            hovertemplate=f'<b>{series_value}</b><br>{x_dim}: %{{x}}<br>{metric_name}: %{{y:,.2f}}<extra></extra>',
+        ))
+    
+    fig.update_layout(
+        title=f"{metric_name.replace('_', ' ').title()} by {x_dim.replace('_', ' ').title()} and {series_dim.replace('_', ' ').title()}",
+        xaxis_title=x_dim.replace("_", " ").title(),
+        yaxis_title=metric_name.replace("_", " ").title(),
+        barmode='group',  # ← KEY: grouped bars, not stacked
+        legend_title=series_dim.replace("_", " ").title(),
+        hovermode='x unified',
+    )
+    
+    return fig
 
 
 def _build_table_chart(results: List[Dict[str, Any]]) -> go.Figure:

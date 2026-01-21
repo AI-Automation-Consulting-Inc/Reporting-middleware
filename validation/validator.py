@@ -33,8 +33,14 @@ def validate_intent(intent: Dict, config: Dict) -> Dict:
             raise IntentValidationError(f"Unsupported dimension filter: {key}")
 
     group_by = intent.get("group_by")
-    if group_by and group_by not in dimensions and group_by != "month":
-        raise IntentValidationError(f"Unsupported group_by: {group_by}")
+    if group_by:
+        # Handle both string and array group_by
+        if isinstance(group_by, list):
+            for dim in group_by:
+                if dim not in dimensions and dim != "month":
+                    raise IntentValidationError(f"Unsupported group_by dimension: {dim}")
+        elif group_by not in dimensions and group_by != "month":
+            raise IntentValidationError(f"Unsupported group_by: {group_by}")
 
     try:
         start, end = resolve_date_range(intent, config)

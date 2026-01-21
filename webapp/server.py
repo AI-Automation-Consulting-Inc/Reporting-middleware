@@ -17,6 +17,21 @@ def _load_config() -> Dict[str, Any]:
     return json.loads(Path("config_store/tenant1.json").read_text(encoding="utf-8-sig"))
 
 
+def generate_ai_insights(question: str, validated: Dict, rows: List[Dict], config: Dict) -> Dict:
+    """Generate AI-powered insights from query results."""
+    try:
+        from analytics.insights_generator import generate_insights
+        return generate_insights(question, validated, rows, config)
+    except Exception as e:
+        print(f"[API] Insights generation error: {e}")
+        return {
+            "key_findings": [],
+            "trends": [],
+            "anomalies": [],
+            "recommendations": []
+        }
+
+
 def _load_validator():
     try:
         from validation.validator import validate_intent, IntentValidationError  # type: ignore
@@ -258,6 +273,7 @@ def api_query(payload: Dict[str, Any]):
         "chart_type": chart_info.get("chart_type"),
         "chart_html_base64": chart_b64,
         "calc_steps": calc_steps,
+        "insights": generate_ai_insights(question, validated, rows, config)
     }
 
 
