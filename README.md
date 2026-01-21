@@ -189,13 +189,52 @@ pytest tests/                           # All tests
 pytest tests/test_llm_validator_flow.py # LLM intent parsing
 ```
 
-## Deployment Notes
+## Deployment
 
-- **Port**: Default 8000 (configurable)
+### AWS Lightsail (Production-Ready with SSL)
+
+Complete deployment guide with SSL certificate reuse: [AWS_LIGHTSAIL_DEPLOYMENT.md](AWS_LIGHTSAIL_DEPLOYMENT.md)
+
+**Quick Deploy from Windows:**
+```powershell
+.\deploy-to-lightsail.ps1 `
+  -LightsailIP "YOUR_INSTANCE_IP" `
+  -KeyPath "path\to\your-key.pem" `
+  -Domain "your-domain.com" `
+  -OpenAIKey "sk-..."
+```
+
+**Manual Deploy:**
+```bash
+# 1. Create and transfer package
+tar -czf report-middleware.tar.gz --exclude='.git' --exclude='.venv' .
+scp -i your-key.pem report-middleware.tar.gz ubuntu@YOUR_IP:~/
+
+# 2. Deploy on server
+ssh -i your-key.pem ubuntu@YOUR_IP
+tar -xzf report-middleware.tar.gz -C /opt/report-middleware
+cd /opt/report-middleware
+export OPENAI_API_KEY="sk-..." DOMAIN="your-domain.com"
+chmod +x lightsail-deploy.sh && sudo -E ./lightsail-deploy.sh
+```
+
+The deployment script:
+- ✅ Uses your existing SSL certificates (Let's Encrypt or custom)
+- ✅ Configures Nginx with HTTPS and security headers
+- ✅ Sets up Supervisor for auto-restart
+- ✅ Enables systemd services for boot persistence
+
+### Docker Deployment
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for Docker and docker-compose instructions.
+
+### Deployment Notes
+
+- **Port**: Default 8003 (FastAPI), 80/443 (Nginx)
 - **Dependencies**: See `requirements.txt`
-- **HTTPS**: Use reverse proxy (nginx, Caddy) for production
-- **API Keys**: Store in environment, not in code
-- **Database**: SQLite for demo; swap engine for production (PostgreSQL, etc.)
+- **HTTPS**: Nginx with existing SSL certificates
+- **API Keys**: Stored in environment variables
+- **Database**: SQLite for demo; PostgreSQL recommended for production
 
 ## Git Workflow
 
