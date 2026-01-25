@@ -1369,71 +1369,191 @@
       insightsBox.innerHTML = html;
     }
 
-    function showClarification(interpretation, question) {
-      clarifyModal.innerHTML = `
-        <div class="clarification-overlay">
-          <div class="clarification-modal">
-            <div class="modal-title">🤔 Need Clarification</div>
-            <div>
-              <strong>I understand your question as:</strong>
-              <div class="interpretation-box">${interpretation}</div>
-            </div>
-            <div class="modal-question">${question}</div>
-            <div class="modal-actions">
-              <button id="clarYes" class="btn-success">
-                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                  <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/>
-                </svg>
-                Yes, that's correct
-              </button>
-              <button id="clarNo" class="btn-danger">
-                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                  <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
-                </svg>
-                No, let me rephrase
-              </button>
-            </div>
-            <div id="clarRetry" style="display:none; margin-top: 1.5rem;">
-              <strong>Please rephrase your question:</strong>
-              <div style="margin-top: 0.75rem;">
-                <input id="clarInput" type="text" placeholder="Enter your question differently" style="margin-bottom: 0.75rem;" />
-                <button id="clarBtn" class="btn-primary">Submit</button>
+    function showClarification(interpretation, question, explicitOptions = []) {
+      // Use explicit options if provided by backend, otherwise try to extract from text
+      let options = explicitOptions.length > 0 ? explicitOptions : [];
+      
+      // If no explicit options, detect if this is a disambiguation question (multiple options mentioned)
+      if (options.length === 0) {
+        const isDisambiguation = /could mean|might mean|either|or\b/i.test(interpretation) || 
+                                 /which (one|do you mean)/i.test(question);
+        
+        // Extract options if present (simple heuristic: look for "A or B" patterns)
+        if (isDisambiguation) {
+          // Match patterns like "could mean X or Y"
+          const orPattern = /(?:could mean|might mean|either)\s+([^.]+?)\s+or\s+([^.]+?)(?:\.|$)/i;
+          const match = interpretation.match(orPattern);
+          if (match) {
+            options = [match[1].trim(), match[2].trim()];
+          }
+        }
+      }
+      
+      let modalContent = '';
+      
+      if (options.length >= 2) {
+        // Show multiple choice options
+        modalContent = `
+          <div class="clarification-overlay">
+            <div class="clarification-modal">
+              <div class="modal-title">🤔 Which one do you mean?</div>
+              <div>
+                <strong>Your query could mean:</strong>
+              </div>
+              <div style="margin: 1.5rem 0;">
+                ${options.map((opt, idx) => `
+                  <button class="option-button" data-option="${idx}" style="
+                    display: block;
+                    width: 100%;
+                    padding: 1rem;
+                    margin: 0.75rem 0;
+                    background: var(--bg-primary);
+                    border: 2px solid var(--border);
+                    border-radius: var(--radius-md);
+                    cursor: pointer;
+                    text-align: left;
+                    transition: var(--transition);
+                    font-size: 0.95rem;
+                    line-height: 1.6;
+                  " onmouseover="this.style.background='var(--primary-light)'; this.style.borderColor='var(--primary)';" onmouseout="this.style.background='var(--bg-primary)'; this.style.borderColor='var(--border)';">
+                    <strong style="color: var(--primary);">Option ${idx + 1}:</strong> ${opt}
+                  </button>
+                `).join('')}
+              </div>
+              <div style="text-align: center; margin-top: 1rem;">
+                <button id="clarCustom" style="
+                  background: transparent;
+                  border: 1px solid var(--border);
+                  color: var(--text-secondary);
+                  padding: 0.5rem 1rem;
+                  font-size: 0.875rem;
+                " onmouseover="this.style.background='var(--bg-secondary)';" onmouseout="this.style.background='transparent';">
+                  Neither - let me rephrase
+                </button>
+              </div>
+              <div id="clarRetry" style="display:none; margin-top: 1.5rem;">
+                <strong>Please rephrase your question:</strong>
+                <div style="margin-top: 0.75rem;">
+                  <input id="clarInput" type="text" placeholder="Enter your question differently" style="margin-bottom: 0.75rem;" />
+                  <button id="clarBtn" class="btn-primary">Submit</button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      `;
+        `;
+      } else {
+        // Show yes/no confirmation
+        modalContent = `
+          <div class="clarification-overlay">
+            <div class="clarification-modal">
+              <div class="modal-title">🤔 Need Clarification</div>
+              <div>
+                <strong>I understand your question as:</strong>
+                <div class="interpretation-box">${interpretation}</div>
+              </div>
+              <div class="modal-question">${question}</div>
+              <div class="modal-actions">
+                <button id="clarYes" class="btn-success">
+                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/>
+                  </svg>
+                  Yes, that's correct
+                </button>
+                <button id="clarNo" class="btn-danger">
+                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                  </svg>
+                  No, let me rephrase
+                </button>
+              </div>
+              <div id="clarRetry" style="display:none; margin-top: 1.5rem;">
+                <strong>Please rephrase your question:</strong>
+                <div style="margin-top: 0.75rem;">
+                  <input id="clarInput" type="text" placeholder="Enter your question differently" style="margin-bottom: 0.75rem;" />
+                  <button id="clarBtn" class="btn-primary">Submit</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      
+      clarifyModal.innerHTML = modalContent;
       clarifyModal.style.display = 'block';
 
-      const clarYes = document.getElementById('clarYes');
-      const clarNo = document.getElementById('clarNo');
-      const clarRetry = document.getElementById('clarRetry');
+      // Handle option buttons if present
+      const optionButtons = document.querySelectorAll('.option-button');
+      if (optionButtons.length > 0) {
+        optionButtons.forEach(btn => {
+          btn.onclick = async () => {
+            const optionIdx = btn.getAttribute('data-option');
+            const selectedText = options[parseInt(optionIdx)];
+            btn.disabled = true;
+            clarifyModal.style.display = 'none';
+            // Send the specific choice as clarification
+            await run(lastQuestion, `Option ${parseInt(optionIdx) + 1}: ${selectedText}`);
+          };
+        });
+        
+        const clarCustom = document.getElementById('clarCustom');
+        const clarRetry = document.getElementById('clarRetry');
+        if (clarCustom && clarRetry) {
+          clarCustom.onclick = () => {
+            clarCustom.disabled = true;
+            clarRetry.style.display = 'block';
+            const clarInput = document.getElementById('clarInput');
+            clarInput.focus();
+          };
+          
+          const clarInput = document.getElementById('clarInput');
+          const clarBtn = document.getElementById('clarBtn');
+          const handler = async () => {
+            const ans = clarInput.value.trim();
+            if (!ans) return;
+            clarBtn.disabled = true;
+            clarifyModal.style.display = 'none';
+            lastQuestion = ans;
+            await run(ans, null);
+          };
+          clarBtn.onclick = handler;
+          clarInput.onkeydown = (e) => { if (e.key === 'Enter') handler(); };
+        }
+      } else {
+        // Handle yes/no buttons
+        const clarYes = document.getElementById('clarYes');
+        const clarNo = document.getElementById('clarNo');
+        const clarRetry = document.getElementById('clarRetry');
 
-      clarYes.onclick = async () => {
-        clarYes.disabled = true;
-        clarifyModal.style.display = 'none';
-        await run(lastQuestion, 'yes');
-      };
+        if (clarYes) {
+          clarYes.onclick = async () => {
+            clarYes.disabled = true;
+            clarifyModal.style.display = 'none';
+            await run(lastQuestion, 'yes');
+          };
+        }
 
-      clarNo.onclick = () => {
-        clarNo.disabled = true;
-        clarRetry.style.display = 'block';
-        const clarInput = document.getElementById('clarInput');
-        clarInput.focus();
-      };
+        if (clarNo && clarRetry) {
+          clarNo.onclick = () => {
+            clarNo.disabled = true;
+            clarRetry.style.display = 'block';
+            const clarInput = document.getElementById('clarInput');
+            clarInput.focus();
+          };
 
-      const clarInput = document.getElementById('clarInput');
-      const clarBtn = document.getElementById('clarBtn');
-      const handler = async () => {
-        const ans = clarInput.value.trim();
-        if (!ans) return;
-        clarBtn.disabled = true;
-        clarifyModal.style.display = 'none';
-        lastQuestion = ans;
-        await run(ans, null);
-      };
-      clarBtn.onclick = handler;
-      clarInput.onkeydown = (e) => { if (e.key === 'Enter') handler(); };
+          const clarInput = document.getElementById('clarInput');
+          const clarBtn = document.getElementById('clarBtn');
+          const handler = async () => {
+            const ans = clarInput.value.trim();
+            if (!ans) return;
+            clarBtn.disabled = true;
+            clarifyModal.style.display = 'none';
+            lastQuestion = ans;
+            await run(ans, null);
+          };
+          clarBtn.onclick = handler;
+          clarInput.onkeydown = (e) => { if (e.key === 'Enter') handler(); };
+        }
+      }
     }
 
     async function run(question, clarification) {
@@ -1446,7 +1566,8 @@
         if (out.clarification_required) {
           const interpretation = out.interpretation || '';
           const clarQuestion = out.question || out.message || 'Is this correct?';
-          showClarification(interpretation, clarQuestion);
+          const options = out.options || []; // Get options array if present
+          showClarification(interpretation, clarQuestion, options);
           return;
         }
         

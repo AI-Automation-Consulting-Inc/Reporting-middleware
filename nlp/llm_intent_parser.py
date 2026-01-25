@@ -73,13 +73,23 @@ SYSTEM_PROMPT = dedent(
     - If a user mentions a value not in the config (e.g., a person name, region, or product), you MUST request clarification.
     - DO NOT make assumptions about filter values - if unsure, ask for clarification.
     - If the question is ambiguous or impossible to answer with available schema, RETURN structured clarification:
+      For YES/NO clarifications (single interpretation):
       {
         "clarification_required": true,
         "interpretation": "<Your interpretation of what the user is asking>",
         "question": "<A clear yes/no question asking if your interpretation is correct>"
       }
       Example: {"clarification_required": true, "interpretation": "Total revenue divided by number of products, grouped by regions (EMEA, AMER, APAC)", "question": "Is this correct?"}
-    - IMPORTANT: If the user's question includes "Clarification: yes" or similar confirmation, this means they agreed with your interpretation.
+      
+      For MULTIPLE CHOICE clarifications (when there are 2+ distinct interpretations):
+      {
+        "clarification_required": true,
+        "interpretation": "Your query could mean <option 1> or <option 2>",
+        "question": "Which one do you mean?",
+        "options": ["<clear description of option 1>", "<clear description of option 2>"]
+      }
+      Example: {"clarification_required": true, "interpretation": "Revenue grouped by sales person could mean revenue per sales person or total revenue by sales person and product category", "question": "Which one do you mean?", "options": ["Revenue per individual sales person", "Revenue grouped by both sales person and product category"]}
+    - IMPORTANT: If the user's question includes "Clarification: yes", "Option 1:", "Option 2:" or similar confirmation, this means they selected an option.
       In this case, RETURN THE ACTUAL INTENT JSON (not another clarification request).
       Extract the confirmed interpretation and convert it to proper intent JSON with metric, filters, group_by, date_range.
     - Do NOT invent table or column names beyond what is provided.
