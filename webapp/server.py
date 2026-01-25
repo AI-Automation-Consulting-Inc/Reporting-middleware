@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 
-# Auto-deploy test - Jan 25 2026 - retry deployment
+# Auto-deploy test - retry v2
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
