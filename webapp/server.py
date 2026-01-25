@@ -407,9 +407,9 @@ def api_sample_queries():
             {
                 "category": "Revenue Analysis",
                 "queries": [
-                    "revenue from EMEA region last 6 months",
+                    "revenue from EMEA region",
                     "total revenue by region",
-                    "monthly revenue trend for last year",
+                    "monthly revenue trend",
                     "revenue by product category"
                 ]
             },
@@ -419,7 +419,7 @@ def api_sample_queries():
                     "top 3 sales person from EMEA region",
                     "deal count by sales rep",
                     "average revenue per sales person by region",
-                    "sales rep performance last quarter"
+                    "sales rep performance"
                 ]
             },
             {
@@ -436,7 +436,7 @@ def api_sample_queries():
                 "queries": [
                     "monthly revenue trend",
                     "quarterly deal count",
-                    "revenue this month vs last month",
+                    "revenue comparison by month",
                     "deals closed by month"
                 ]
             },
