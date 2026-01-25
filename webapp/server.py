@@ -55,10 +55,36 @@ def _load_validator():
             return validate_intent, IntentValidationError
 
 
+@app.get("/api/date-limits")
+def api_date_limits():
+    """Get min and max dates from the database."""
+    try:
+        from sqlalchemy import create_engine, func, text
+        engine = create_engine('sqlite:///enhanced_sales.db')
+        with engine.connect() as conn:
+            # Query fact table for min/max dates
+            result = conn.execute(text(
+                "SELECT MIN(sale_date) as min_date, MAX(sale_date) as max_date FROM fact_sales_pipeline"
+            ))
+            row = result.fetchone()
+            if row and row[0] and row[1]:
+                return {
+                    "min_date": str(row[0]),
+                    "max_date": str(row[1])
+                }
+            return {"min_date": "2024-01-01", "max_date": "2025-12-31"}
+    except Exception as e:
+        print(f"[API] Error getting date limits: {e}")
+        return {"min_date": "2024-01-01", "max_date": "2025-12-31"}
+
+
 @app.post("/api/query")
 def api_query(payload: Dict[str, Any]):
     question: str = (payload.get("question") or "").strip()
     clarification: Optional[str] = (payload.get("clarification") or None)
+    date_from: Optional[str] = (payload.get("date_from") or None)
+    date_to: Optional[str] = (payload.get("date_to") or None)
+    
     if not question:
         return JSONResponse({"error": "question is required"}, status_code=400)
 
@@ -174,6 +200,14 @@ def api_query(payload: Dict[str, Any]):
         intent = disambiguate_filters(intent)
     except Exception:
         pass
+
+    # If user provided explicit dates, override the intent's date_range
+    if date_from and date_to:
+        intent["custom_date"] = {
+            "start": date_from,
+            "end": date_to
+        }
+        print(f"[API] Using custom date range: {date_from} to {date_to}")
 
     # Validate and resolve dates
     try:

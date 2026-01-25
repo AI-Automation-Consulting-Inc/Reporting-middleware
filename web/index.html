@@ -789,8 +789,24 @@
           <circle cx="11" cy="11" r="8"></circle>
           <path d="m21 21-4.35-4.35"></path>
         </svg>
-        <input id="q" type="text" placeholder="Ask anything... e.g., revenue by product for EMEA region last 6 months" />
+        <input id="q" type="text" placeholder="Ask anything... e.g., revenue by product for EMEA region" />
       </div>
+      
+      <!-- Date Range Picker -->
+      <div style="display: flex; gap: 1rem; margin: 1rem 0; align-items: center; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <label for="dateFrom" style="font-weight: 500; color: var(--text-primary);">From:</label>
+          <input id="dateFrom" type="date" style="padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.9rem;" />
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <label for="dateTo" style="font-weight: 500; color: var(--text-primary);">To:</label>
+          <input id="dateTo" type="date" style="padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.9rem;" />
+        </div>
+        <button id="resetDateBtn" style="padding: 0.5rem 0.75rem; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; font-size: 0.85rem; color: var(--text-secondary);">
+          Reset
+        </button>
+      </div>
+      
       <button id="runBtn" class="btn-primary">
         <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
           <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
@@ -854,10 +870,43 @@
     const dbStatusBadge = document.getElementById('dbStatusBadge');
     const dbInfoToggle = document.getElementById('dbInfoToggle');
     const dbInfoContent = document.getElementById('dbInfoContent');
+    const dateFromEl = document.getElementById('dateFrom');
+    const dateToEl = document.getElementById('dateTo');
+    const resetDateBtn = document.getElementById('resetDateBtn');
 
     console.log('[DEBUG] Elements:', {dbInfo, sampleQueries, dbStatusBadge});
 
     let lastQuestion = '';
+    let dbMinDate = '';
+    let dbMaxDate = '';
+    
+    // Load date limits from database
+    async function loadDateLimits() {
+      try {
+        const res = await fetch('/api/date-limits');
+        const data = await res.json();
+        if (data.min_date && data.max_date) {
+          dbMinDate = data.min_date;
+          dbMaxDate = data.max_date;
+          dateFromEl.min = dbMinDate;
+          dateFromEl.max = dbMaxDate;
+          dateFromEl.value = dbMinDate;
+          dateToEl.min = dbMinDate;
+          dateToEl.max = dbMaxDate;
+          dateToEl.value = dbMaxDate;
+          console.log('[DEBUG] Date limits loaded:', {min: dbMinDate, max: dbMaxDate});
+        }
+      } catch (e) {
+        console.warn('[DEBUG] Failed to load date limits:', e);
+      }
+    }
+    
+    // Reset dates to full range
+    resetDateBtn.addEventListener('click', () => {
+      dateFromEl.value = dbMinDate;
+      dateToEl.value = dbMaxDate;
+    });
+
     
     // Toggle database info section
     dbInfoToggle.addEventListener('click', () => {
@@ -1049,7 +1098,11 @@
     };
 
     async function callApi(question, clarification) {
-      const payload = { question };
+      const payload = { 
+        question,
+        date_from: dateFromEl.value,
+        date_to: dateToEl.value
+      };
       if (clarification) payload.clarification = clarification;
       const res = await fetch('/api/query', {
         method: 'POST',
@@ -1290,6 +1343,7 @@
     console.log('About to load database info and sample queries...');
     try {
       loadDatabaseInfo();
+      loadDateLimits();
       loadSampleQueries();
       console.log('Functions called successfully');
     } catch(e) {
