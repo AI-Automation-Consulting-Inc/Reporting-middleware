@@ -18,7 +18,7 @@ jobs:
           key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
           port: 22
           script: |
-            cd /path/to/Report-Middleware
+            cd /home/ubuntu/report-middleware
             git pull origin main
             source .venv/bin/activate || . .venv/bin/activate
             pip install -q -r requirements.txt
