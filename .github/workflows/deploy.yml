@@ -1,0 +1,26 @@
+name: Deploy to Lightsail
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Deploy to Lightsail
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.LIGHTSAIL_HOST }}
+          username: ${{ secrets.LIGHTSAIL_USER }}
+          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+          port: 22
+          script: |
+            cd /path/to/Report-Middleware
+            git pull origin main
+            source .venv/bin/activate || . .venv/bin/activate
+            pip install -q -r requirements.txt
+            # Restart the service (adjust based on your setup)
+            sudo systemctl restart reporting-middleware || supervisorctl restart reporting-middleware || pkill -f "uvicorn webapp.server:app" && nohup python -m uvicorn webapp.server:app --host 0.0.0.0 --port 8003 > /dev/null 2>&1 &
