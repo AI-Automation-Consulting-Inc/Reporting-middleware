@@ -97,6 +97,11 @@ SYSTEM_PROMPT = dedent(
       * Use `country` filter for specific countries (Canada, Germany, United States, etc.)
       * Use `region` filter for geographic clusters (EMEA, AMER, APAC)
     - Prefer exact matches to tenant dimension names; do not normalize into other dimensions unless explicit.
+    - CRITICAL: For date range handling:
+      * If the user specifies a date range (e.g., "last 6 months", "last year"), use that explicitly.
+      * If the user does NOT specify a date range, DEFAULT to "last_3_months" without asking for clarification.
+      * Do NOT ask clarification about whether to use a specific range or overall - always default to last_3_months.
+      * Only ask for clarification if the user's date phrase is ambiguous (e.g., "last month" vs "this month").
     - Map semantically similar terms to available options:
     * "last month" → use last_month (previous calendar month)
     * "this month" / "current month" → use this_month (current calendar month) if available

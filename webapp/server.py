@@ -107,6 +107,7 @@ def api_query(payload: Dict[str, Any]):
     
     print(f"[API] Original question: {question}")
     print(f"[API] Lowered: {lowered_q}")
+    print(f"[API] Date range: {date_from} to {date_to}")
     
     # Average revenue per sales person - only set ephemeral expr if not already a config metric
     if ("average" in lowered_q or "avg" in lowered_q) and "revenue" in lowered_q and ("sales person" in lowered_q or "sales_rep" in lowered_q or "salesperson" in lowered_q or "per sales" in lowered_q):
@@ -124,12 +125,23 @@ def api_query(payload: Dict[str, Any]):
         parser_used = "llm"
         print(f"\n[API] LLM parsed intent: {json.dumps(intent, indent=2)}")
         
+        # Override date_range from UI picker if provided
+        if date_from and date_to:
+            intent["custom_date"] = {
+                "text": f"{date_from} to {date_to}",
+                "from": date_from,
+                "to": date_to
+            }
+            intent["date_range"] = None
+            print(f"[API] Using date range from picker: {date_from} to {date_to}")
+        
         # Check if LLM needs clarification
         if intent.get("clarification_required"):
             return {
                 "clarification_required": True,
                 "interpretation": intent.get("interpretation", ""),
-                "question": intent.get("question", "Is this correct?")
+                "question": intent.get("question", "Is this correct?"),
+                "options": intent.get("options", [])
             }
         
         if ephemeral_expr:
