@@ -24,23 +24,27 @@ jobs:
             
             # Pull latest code
             echo "Pulling latest code from main..."
-            git fetch origin
+            git fetch origin main
             git reset --hard origin/main
+            echo "✓ Code pulled successfully"
             
             # Stop and remove old containers
             echo "Stopping old Docker containers..."
             docker-compose down || true
+            echo "✓ Old containers stopped"
             
             # Rebuild and start new containers with latest code
-            echo "Building and starting Docker containers..."
+            echo "Building and starting Docker containers with latest code..."
             docker-compose up -d --build
+            echo "✓ Docker containers started"
             
-            # Wait for container to be healthy
-            echo "Waiting for application to be healthy..."
-            sleep 5
+            # Wait for container to stabilize
+            echo "Waiting 10 seconds for application to stabilize..."
+            sleep 10
             
             # Verify deployment
-            echo "Checking container status..."
+            echo "✓ Deployment complete! Container status:"
+            docker ps --filter "name=report-middleware"
             docker ps --filter "name=report-middleware" --format "table {{.Names}}\t{{.Status}}"
             
             echo "Deployment complete!"
