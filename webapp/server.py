@@ -118,6 +118,7 @@ def api_query(payload: Dict[str, Any]):
         print(f"[API] Detected per-rep metric, setting ephemeral expression")
 
     calc_steps: Optional[Dict[str, Any]] = None
+    confidence_level: float = 0.95  # Default high confidence
 
     try:
         from nlp.llm_intent_parser import parse_intent_with_llm  # type: ignore
@@ -125,6 +126,13 @@ def api_query(payload: Dict[str, Any]):
         intent = parse_intent_with_llm(question, config)
         parser_used = "llm"
         print(f"\n[API] LLM parsed intent: {json.dumps(intent, indent=2)}")
+        
+        # Calculate confidence level based on intent characteristics
+        # Lower confidence for adhoc/exploratory queries
+        if intent.get("derived_expression"):
+            confidence_level = 0.85  # Calculated metrics slightly less confident
+        if "clarification" in question.lower() or "option" in question.lower():
+            confidence_level = 0.75  # User selecting from options, exploratory
         
         # Override date_range from UI picker if provided
         if date_from and date_to:
@@ -320,7 +328,8 @@ def api_query(payload: Dict[str, Any]):
         "chart_type": chart_info.get("chart_type"),
         "chart_html_base64": chart_b64,
         "calc_steps": calc_steps,
-        "insights": generate_ai_insights(question, validated, rows, config)
+        "insights": generate_ai_insights(question, validated, rows, config),
+        "confidence_level": confidence_level
     }
 
 

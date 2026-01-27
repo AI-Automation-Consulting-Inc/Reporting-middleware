@@ -138,6 +138,123 @@ Date resolver interprets "last month" as previous calendar month (e.g., Oct 1-31
 ### 5. Contextual Chart Titles
 Titles show active filters: "Revenue by Sales Rep (Region: EMEA)"
 
+### 6. Smart Clarification & Flexible Input
+When queries are unclear or too vague, the system provides:
+
+**Smart Suggestions Mode** (for vague queries like "list of customers", "show me data"):
+- Backend generates 3-4 actionable suggestions based on available metrics/dimensions
+- User sees: "What would you like to know?" with options like:
+  - "Total revenue by customer"
+  - "Customer count by region"
+  - "Top 10 customers by revenue"
+  - Custom input field always available
+- No yes/no buttons - users can pick from suggestions or freely rephrase
+
+**Flexible Input UI**:
+- Option buttons + custom text input on same screen
+- Enter key submits custom input
+- Cancel button closes modal
+- No rigid yes/no flow - accommodates multiple question types
+
+**Exploratory Query Mode**:
+When users attempt adhoc queries (not in predefined schema):
+- Shows interpretation in plain English, not SQL
+- Provides confidence level and explanation
+- User can accept or refine without validating SQL
+- Suitable for business users, not engineers
+
+## Configuration for Clarification System
+
+### LLM Intent Parser (`nlp/llm_intent_parser.py`)
+
+The system automatically generates smart suggestions when queries are ambiguous:
+
+```json
+{
+  "clarification_required": true,
+  "interpretation": "",
+  "question": "What would you like to know?",
+  "options": [
+    "Total revenue by customer",
+    "Customer count by region", 
+    "Top 10 customers by revenue",
+    "Customer revenue trends over time"
+  ]
+}
+```
+
+#### Trigger Conditions for Smart Suggestions:
+- **List queries**: "customers", "products", "sales people", "show me..."
+- **Bare nouns**: "revenue", "deals", "forecast" (without context)
+- **Data exploration**: "tell me about X"
+
+#### Response Format Examples:
+
+1. **Smart Suggestions** (too vague):
+```python
+{
+  "clarification_required": true,
+  "interpretation": "",  # Empty - no specific interpretation
+  "question": "What would you like to know?",
+  "options": ["...", "...", "...", "..."]  # 3-4 concrete suggestions
+}
+```
+
+2. **Multiple Choice** (genuinely ambiguous):
+```python
+{
+  "clarification_required": true,
+  "interpretation": "",
+  "question": "Which one do you mean?",
+  "options": [
+    "Revenue per individual sales person",
+    "Total revenue grouped by sales person and product category"
+  ]
+}
+```
+
+3. **Single Interpretation** (clear but needs confirmation):
+```python
+{
+  "clarification_required": true,
+  "interpretation": "Total revenue by region for the last 3 months",
+  "question": "Is this what you're looking for?"
+}
+```
+
+### To Reproduce on New Database:
+
+1. **Create tenant config** (`config_store/tenant1.json`):
+```json
+{
+  "fact_table": "your_fact_table",
+  "date_column": "your_date_column",
+  "dimensions": {
+    "dimension_name": "column_name_in_dim_table"
+  },
+  "metrics": {
+    "metric_name": "aggregation_expression"
+  },
+  "date_ranges": {
+    "last_3_months": 90,
+    "last_month": 30
+  }
+}
+```
+
+2. **Extract DB schema** (optional, for better suggestions):
+```powershell
+python scripts/extract_db_schema.py --db "your_db.db"
+# Creates config_store/tenant1_db_schema.json
+```
+
+3. **Test the flow**:
+```powershell
+python -m uvicorn webapp.server:app --port 8000
+# Visit http://localhost:8000
+# Try vague queries: "customers", "show me sales data", etc.
+```
+
 ## Quick Start
 
 ### CLI

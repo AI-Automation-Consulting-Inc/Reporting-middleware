@@ -73,22 +73,45 @@ SYSTEM_PROMPT = dedent(
     - If a user mentions a value not in the config (e.g., a person name, region, or product), you MUST request clarification.
     - DO NOT make assumptions about filter values - if unsure, ask for clarification.
     - If the question is ambiguous or impossible to answer with available schema, RETURN structured clarification:
-      For YES/NO clarifications (single interpretation):
+      For SMART SUGGESTIONS (when query is too vague like "list of customers", "show sales data", "tell me about products"):
       {
         "clarification_required": true,
-        "interpretation": "<Your interpretation of what the user is asking>",
-        "question": "<A clear yes/no question asking if your interpretation is correct>"
+        "interpretation": "",
+        "question": "What would you like to know?",
+        "options": ["<specific query option 1>", "<specific query option 2>", "<specific query option 3>", "<specific query option 4>"]
       }
-      Example: {"clarification_required": true, "interpretation": "Total revenue divided by number of products, grouped by regions (EMEA, AMER, APAC)", "question": "Is this correct?"}
+      - Generate 3-4 specific, actionable query suggestions based on available metrics and dimensions
+      - Make suggestions CONCRETE and EXPLORABLE (user can filter results after seeing data)
+      - Suggestions can include "all customers/products revenue trend" because UI will have semantic filter
+      - GOOD suggestions: "Revenue trend for all customers", "Top 10 customers by revenue", "Revenue by region", "Revenue trend by product"
+      - User can filter/search results interactively after query runs
+      - Do NOT include explicit date periods in suggestions; leave date unspecified so UI date picker controls the period
+      
+      SPECIAL RULE for list queries like "list of customers", "list of products":
+      - If user asks for a list, suggest both aggregated views AND full trend views
+      - User can then filter interactively by customer/product name in the results
+      - Example: "list of customers" → ["Revenue trend for all customers", "Top 10 customers by revenue", "Customers by region", "Revenue by customer"]
+      - Example: "products" → ["Revenue trend for all products", "Top products by revenue", "Revenue by product category", "Products by region"]
+      
+      Example: User asks "customers" → {"clarification_required":true,"interpretation":"","question":"What would you like to know?","options":["Revenue trend for all customers","Top 10 customers by revenue","Revenue by region","Customers by industry"]}
+      
       
       For MULTIPLE CHOICE clarifications (when there are 2+ distinct interpretations):
       {
         "clarification_required": true,
-        "interpretation": "Your query could mean <option 1> or <option 2>",
+        "interpretation": "",
         "question": "Which one do you mean?",
         "options": ["<clear description of option 1>", "<clear description of option 2>"]
       }
-      Example: {"clarification_required": true, "interpretation": "Revenue grouped by sales person could mean revenue per sales person or total revenue by sales person and product category", "question": "Which one do you mean?", "options": ["Revenue per individual sales person", "Revenue grouped by both sales person and product category"]}
+      Example: {"clarification_required": true, "interpretation": "", "question": "Which one do you mean?", "options": ["Revenue per individual sales person", "Revenue grouped by both sales person and product category"]}
+      
+      For SINGLE INTERPRETATION (when interpretation is clear but needs confirmation):
+      {
+        "clarification_required": true,
+        "interpretation": "<Your interpretation of what the user is asking>",
+        "question": "Is this what you're looking for?"
+      }
+      Example: {"clarification_required": true, "interpretation": "Total revenue divided by number of products, grouped by regions (EMEA, AMER, APAC)", "question": "Is this what you're looking for?"}
     - IMPORTANT: If the user's question includes "Clarification: yes", "Option 1:", "Option 2:" or similar confirmation, this means they selected an option.
       In this case, RETURN THE ACTUAL INTENT JSON (not another clarification request).
       Extract the confirmed interpretation and convert it to proper intent JSON with metric, filters, group_by, date_range.
@@ -150,8 +173,17 @@ SYSTEM_PROMPT = dedent(
         - Input: "top performing products in United States"
             Output: {"metric":"revenue","filters":{"region":"United States"},"group_by":"product_name","date_range":"last_3_months"}
         
+        - Input: "list of customers"
+            Output: {"clarification_required":true,"interpretation":"","question":"What would you like to know?","options":["Total revenue by customer","Customer count by region","Top 10 customers by revenue","Customer revenue trends over time"]}
+        
+        - Input: "show me sales data"
+            Output: {"clarification_required":true,"interpretation":"","question":"What would you like to know?","options":["Total revenue","Revenue by sales person","Revenue trends over time","Revenue by region"]}
+        
+        - Input: "products"
+            Output: {"clarification_required":true,"interpretation":"","question":"What would you like to know?","options":["Total revenue by product","Product count","Top products by revenue","Product performance by region"]}
+        
         - Input: "average revenue per product for all regions"
-            Output: {"clarification_required":true,"interpretation":"Total revenue divided by total number of products, grouped by region (EMEA, AMER, APAC) - showing average revenue per product for each region","question":"Is this correct?"}
+            Output: {"clarification_required":true,"interpretation":"Total revenue divided by total number of products, grouped by region (EMEA, AMER, APAC) - showing average revenue per product for each region","question":"Is this what you're looking for?"}
         
         - Input: "median deal size by customer tier"
             Output: {"clarification_required":true,"interpretation":"The 'revenue' metric (which calculates total revenue, not median) grouped by customer tier","question":"Do you want total revenue by customer tier?"}
@@ -160,7 +192,7 @@ SYSTEM_PROMPT = dedent(
             Output: {"metric":"revenue","filters":{},"group_by":"region","date_range":"last_3_months","derived_expression":"SUM(f.net_revenue) / NULLIF(COUNT(DISTINCT f.product_id), 0)"}
         
         - Input: "average deals per sales person"
-            Output: {"clarification_required":true,"interpretation":"Total deal count divided by the number of sales representatives, without grouping by any dimension.","question":"Is this correct?"}
+            Output: {"clarification_required":true,"interpretation":"Total deal count divided by the number of sales representatives, without grouping by any dimension.","question":"Is this what you're looking for?"}
         
         - Input: "average deals per sales person\nClarification: yes, that interpretation is correct"
             Output: {"metric":"deal_count","filters":{},"group_by":null,"date_range":"last_3_months","derived_expression":"COUNT(*) * 1.0 / NULLIF(COUNT(DISTINCT f.sales_rep_id), 0)"}
@@ -343,6 +375,20 @@ def parse_intent_with_llm(question: str, config: Dict[str, Any]) -> Dict[str, An
             raise RuntimeError(f"LLM returned invalid JSON: {content}")
 
     if parsed.get("clarification_required"):
+        # Strip date period qualifiers from suggestions (e.g., "for this month" → empty)
+        if "options" in parsed and isinstance(parsed["options"], list):
+            cleaned_options = []
+            for opt in parsed["options"]:
+                # Remove common date phrases to leave only core query
+                cleaned = opt
+                cleaned = re.sub(r'\s+for\s+(this\s+)?month$', '', cleaned, flags=re.IGNORECASE)
+                cleaned = re.sub(r'\s+for\s+last\s+\d+\s+(months?|days?|years?|weeks?)', '', cleaned, flags=re.IGNORECASE)
+                cleaned = re.sub(r'\s+for\s+(last|this|current)\s+(month|quarter|year|week|day)', '', cleaned, flags=re.IGNORECASE)
+                cleaned = cleaned.strip()
+                if cleaned:  # Only add if not empty after cleaning
+                    cleaned_options.append(cleaned)
+            if cleaned_options:
+                parsed["options"] = cleaned_options
         # Return the structured clarification instead of raising error
         return parsed
 

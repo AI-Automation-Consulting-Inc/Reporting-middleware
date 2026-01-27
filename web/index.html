@@ -15,6 +15,7 @@
     gtag('config', 'G-4KD0QJHCRK');
   </script>
   <!-- End Google Analytics -->
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1030,6 +1031,10 @@
     async function loadDateLimits() {
       try {
         const res = await fetch('/api/date-limits');
+        if (!res.ok) {
+          console.warn('[DEBUG] Date limits API returned status', res.status);
+          return;
+        }
         const data = await res.json();
         if (data.min_date && data.max_date) {
           dbMinDate = data.min_date;
@@ -1041,6 +1046,8 @@
           dateToEl.max = dbMaxDate;
           dateToEl.value = dbMaxDate;
           console.log('[DEBUG] Date limits loaded:', {min: dbMinDate, max: dbMaxDate});
+        } else {
+          console.warn('[DEBUG] Date limits API response missing dates:', data);
         }
       } catch (e) {
         console.warn('[DEBUG] Failed to load date limits:', e);
@@ -1063,11 +1070,15 @@
     // Load database information on page load
     async function loadDatabaseInfo() {
       try {
+        console.log('[DEBUG] Fetching /api/database-info...');
         const res = await fetch('/api/database-info');
+        console.log('[DEBUG] Received response, status:', res.status);
         const data = await res.json();
+        console.log('[DEBUG] Parsed JSON:', {hasError: !!data.error, ok: res.ok});
 
         if (!res.ok || data.error) {
           const msg = data && data.error ? data.error : `Request failed with status ${res.status}`;
+          console.warn('[DEBUG] API error:', msg);
           dbInfo.innerHTML = `<div class="error-state"><div class="error-title">Error</div>${msg}</div>`;
           dbStatusBadge.textContent = 'Error';
           dbStatusBadge.className = 'badge badge-danger';
@@ -1146,18 +1157,6 @@
           </div>
         `;
 
-        const dateRanges = data.date_ranges || {};
-        if (Object.keys(dateRanges).length) {
-          html += `
-            <div class="info-card scroll-card" style="grid-column: 1 / -1;">
-              <div class="info-card-title">Supported Date Ranges</div>
-              <ul class="info-list">
-                ${Object.entries(dateRanges).map(([key, value]) => `<li><strong>${key}</strong> <span>${value} days</span></li>`).join('')}
-              </ul>
-            </div>
-          `;
-        }
-
         html += `
           <div class="info-card scroll-card" style="grid-column: 1 / -1;">
             <div class="info-card-title">Database Tables</div>
@@ -1170,7 +1169,9 @@
         dbInfo.innerHTML = html;
         dbStatusBadge.textContent = 'Ready';
         dbStatusBadge.className = 'badge badge-success';
+        console.log('[DEBUG] Database info loaded successfully');
       } catch (err) {
+        console.error('[DEBUG] Error loading database info:', err);
         const msg = err && err.message ? err.message : 'Unknown error';
         dbInfo.innerHTML = `<div class="error-state"><div class="error-title">Error</div>${msg}</div>`;
         dbStatusBadge.textContent = 'Error';
@@ -1188,8 +1189,12 @@
       };
 
       try {
+        console.log('[DEBUG] Fetching /api/sample-queries...');
         const res = await fetch('/api/sample-queries');
+        console.log('[DEBUG] Received response, status:', res.status);
         const data = await res.json();
+        console.log('[DEBUG] Parsed sample queries:', {categoryCount: data.categories?.length || 0});
+        
         const cats = Array.isArray(data.categories) && data.categories.length ? data.categories : fallback.categories;
         let html = '';
         for (const cat of cats) {
@@ -1201,8 +1206,9 @@
         sampleQueries.innerHTML = html || '<div class="info-card scroll-card">No sample queries available right now.</div>';
         // Render quick suggestions under the search bar
         renderQuickSuggestions(cats);
+        console.log('[DEBUG] Sample queries loaded successfully');
       } catch (err) {
-        console.error('Failed to load sample queries:', err);
+        console.error('[DEBUG] Failed to load sample queries, using fallback:', err);
         let html = '';
         for (const cat of fallback.categories) {
           html += `<div class="sample-category">${cat.category}</div>`;
@@ -1282,6 +1288,86 @@
       dataBox.innerHTML = html;
     }
 
+    function createSemanticFilter(rows, dimensionHint) {
+      // Find dimension column from x-axis dimension (context-aware)
+      const dimensionCols = ['group_col', 'customer_name', 'product_name', 'sales_rep', 'sales_rep_name', 'rep_name', 'region', 'geo_cluster', 'country', 'category', 'product_category'];
+      if (dimensionHint && !dimensionCols.includes(dimensionHint)) {
+        dimensionCols.unshift(dimensionHint);
+      } else if (dimensionHint) {
+        dimensionCols.unshift(dimensionHint);
+      }
+      
+      let filterCol = null;
+      let uniqueValues = new Set();
+      
+      // Find which dimension column exists in the data
+      for (const col of dimensionCols) {
+        if (rows.length > 0 && col in rows[0] && col !== 'month' && col !== 'date' && col !== 'metric') {
+          filterCol = col;
+          rows.forEach(r => {
+            if (r[col]) uniqueValues.add(r[col]);
+          });
+          if (uniqueValues.size >= 2) break; // Need at least 2 values to filter
+        }
+      }
+      
+      if (!filterCol || uniqueValues.size < 2) return null; // Skip if no dimension or only 1 unique value
+      
+      const sortedValues = Array.from(uniqueValues).sort();
+      const filterId = `filter_${filterCol}`;
+      const displayName = filterCol === 'group_col' ? (dimensionHint || 'category').replace(/_/g, ' ') : filterCol.replace(/_/g, ' ');
+      
+      const filterHTML = `
+        <div id="semanticFilterContainer" style="margin-bottom: 1rem; padding: 1rem; background: var(--bg-secondary); border-radius: var(--radius-md);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <label style="font-weight: 600; font-size: 0.95rem;">🔍 Filter by ${displayName}:</label>
+            <div>
+              <button id="selectAll_${filterCol}" style="padding: 0.25rem 0.75rem; margin-right: 0.5rem; font-size: 0.8rem; background: var(--primary); color: white; border: none; border-radius: var(--radius-sm); cursor: pointer;">Select All</button>
+              <button id="clearAll_${filterCol}" style="padding: 0.25rem 0.75rem; font-size: 0.8rem; background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer;">Clear All</button>
+            </div>
+          </div>
+          <input id="${filterId}" type="text" placeholder="Search ${displayName}..." style="
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+          " />
+          <div id="${filterId}_list" style="
+            max-height: 200px;
+            overflow-y: auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+          ">
+            ${sortedValues.map(val => `
+              <label style="
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                padding: 0.5rem 0.75rem;
+                background: var(--bg-primary);
+                border: 1px solid var(--border);
+                border-radius: var(--radius-sm);
+                cursor: pointer;
+                font-size: 0.85rem;
+                transition: var(--transition);
+              " onmouseover="this.style.background='var(--primary-light)'" onmouseout="this.style.background='var(--bg-primary)'">
+                <input type="checkbox" class="filter-checkbox" value="${val}" data-column="${filterCol}" checked style="cursor: pointer;" />
+                ${val}
+              </label>
+            `).join('')}
+          </div>
+          <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border); font-size: 0.85rem; color: var(--text-secondary);">
+            <span id="filterCount_${filterCol}">${sortedValues.length} of ${sortedValues.length}</span> items selected
+          </div>
+        </div>
+      `;
+      
+      return { html: filterHTML, filterCol, values: sortedValues };
+    }
+
     function renderChart(htmlBase64) {
       if (!htmlBase64) {
         chartBox.innerHTML = '<div class="empty-state"><div class="empty-icon">📈</div><div>No chart available</div></div>';
@@ -1294,6 +1380,102 @@
       chartBox.innerHTML = '';
       chartBox.appendChild(iframe);
       console.log('[CHART] Loaded at', new Date().toISOString());
+    }
+
+    function renderChartFromRows(rows, intent, chartType) {
+      if (!window.Plotly) return false;
+      if (!rows || rows.length === 0) {
+        chartBox.innerHTML = '<div class="empty-state"><div class="empty-icon">📈</div><div>No chart data</div></div>';
+        return true;
+      }
+
+      const groupBy = Array.isArray(intent?.group_by) ? intent.group_by : (intent?.group_by ? [intent.group_by] : []);
+      const sample = rows[0] || {};
+      const timeCol = ['month', 'date'].find(c => c in sample) || null;
+      let dimCol = null;
+
+      if ('group_col' in sample) {
+        dimCol = 'group_col';
+      } else if (groupBy.length) {
+        dimCol = groupBy.find(g => g !== timeCol && g !== 'month' && g !== 'date' && g in sample) || null;
+      } else {
+        dimCol = Object.keys(sample).find(c => c !== 'metric' && c !== timeCol) || null;
+      }
+
+      const metricCol = 'metric' in sample ? 'metric' : Object.keys(sample).find(c => c !== dimCol && c !== timeCol) || 'metric';
+      let data = [];
+
+      if (timeCol && dimCol) {
+        // Multi-series time chart
+        const seriesMap = new Map();
+        rows.forEach(r => {
+          const key = r[dimCol];
+          if (!seriesMap.has(key)) seriesMap.set(key, []);
+          seriesMap.get(key).push({ x: r[timeCol], y: r[metricCol] ?? 0 });
+        });
+        data = Array.from(seriesMap.entries()).map(([name, points]) => {
+          points.sort((a, b) => String(a.x).localeCompare(String(b.x)));
+          return {
+            type: 'scatter',
+            mode: 'lines',
+            name: String(name),
+            x: points.map(p => p.x),
+            y: points.map(p => p.y)
+          };
+        });
+      } else if (timeCol) {
+        // Single series time chart
+        const points = rows.map(r => ({ x: r[timeCol], y: r[metricCol] ?? 0 }))
+          .sort((a, b) => String(a.x).localeCompare(String(b.x)));
+        data = [{ type: 'scatter', mode: 'lines', x: points.map(p => p.x), y: points.map(p => p.y) }];
+      } else if (dimCol) {
+        // Categorical bar chart
+        data = [{
+          type: 'bar',
+          x: rows.map(r => r[dimCol]),
+          y: rows.map(r => r[metricCol] ?? 0)
+        }];
+      } else {
+        return false;
+      }
+
+      const titleMetric = (intent?.metric || metricCol || 'Metric').toString().replace(/_/g, ' ');
+      const titleDim = dimCol ? dimCol.replace(/_/g, ' ') : (timeCol || 'time');
+      const layout = {
+        title: `${titleMetric} by ${titleDim}`,
+        margin: { t: 40, l: 50, r: 20, b: 120 },
+        height: 420,
+        xaxis: { tickangle: -45, automargin: true }
+      };
+
+      chartBox.innerHTML = '';
+      const chartDiv = document.createElement('div');
+      chartBox.appendChild(chartDiv);
+      window.Plotly.newPlot(chartDiv, data, layout, { displayModeBar: false, responsive: true });
+      return true;
+    }
+
+    function getFilterDimension(rows, intent) {
+      if (!rows || rows.length === 0) return null;
+      const groupBy = Array.isArray(intent?.group_by) ? intent.group_by : (intent?.group_by ? [intent.group_by] : []);
+      const sample = rows[0] || {};
+      const timeCol = ['month', 'date'].find(c => c in sample) || null;
+
+      // Prefer group_col for categorical data
+      if ('group_col' in sample) return 'group_col';
+      
+      // Find first non-time dimension from group_by array
+      if (groupBy.length) {
+        for (const dim of groupBy) {
+          if (dim !== 'month' && dim !== 'date' && dim !== timeCol && dim in sample) {
+            return dim;
+          }
+        }
+      }
+      
+      // Fallback: find any non-metric, non-time column
+      const fallback = Object.keys(sample).find(c => c !== 'metric' && c !== timeCol && c !== 'month' && c !== 'date');
+      return fallback || null;
     }
 
     function renderCalcSteps(info) {
@@ -1393,85 +1575,70 @@
       let modalContent = '';
       
       if (options.length >= 2) {
-        // Show multiple choice options
+        // Show hybrid: multiple choice options + custom input
         modalContent = `
           <div class="clarification-overlay">
             <div class="clarification-modal">
-              <div class="modal-title">🤔 Which one do you mean?</div>
-              <div>
-                <strong>Your query could mean:</strong>
+              <div class="modal-title">❓ Your query needs clarification</div>
+              <div style="background: var(--bg-secondary); padding: 0.75rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem; font-size: 0.9rem;">
+                "${lastQuestion}"
               </div>
-              <div style="margin: 1.5rem 0;">
+              <div>
+                <strong>I can show you:</strong>
+              </div>
+              <div style="margin: 1rem 0;">
                 ${options.map((opt, idx) => `
                   <button class="option-button" data-option="${idx}" style="
                     display: block;
                     width: 100%;
-                    padding: 1rem;
-                    margin: 0.75rem 0;
+                    padding: 0.875rem;
+                    margin: 0.5rem 0;
                     background: var(--bg-primary);
                     border: 2px solid var(--border);
                     border-radius: var(--radius-md);
                     cursor: pointer;
                     text-align: left;
                     transition: var(--transition);
-                    font-size: 0.95rem;
-                    line-height: 1.6;
+                    font-size: 0.9rem;
+                    line-height: 1.5;
                   " onmouseover="this.style.background='var(--primary-light)'; this.style.borderColor='var(--primary)';" onmouseout="this.style.background='var(--bg-primary)'; this.style.borderColor='var(--border)';">
-                    <strong style="color: var(--primary);">Option ${idx + 1}:</strong> ${opt}
+                    ${opt}
                   </button>
                 `).join('')}
               </div>
-              <div style="text-align: center; margin-top: 1rem;">
-                <button id="clarCustom" style="
-                  background: transparent;
-                  border: 1px solid var(--border);
-                  color: var(--text-secondary);
-                  padding: 0.5rem 1rem;
-                  font-size: 0.875rem;
-                " onmouseover="this.style.background='var(--bg-secondary)';" onmouseout="this.style.background='transparent';">
-                  Neither - let me rephrase
-                </button>
-              </div>
-              <div id="clarRetry" style="display:none; margin-top: 1.5rem;">
-                <strong>Please rephrase your question:</strong>
+              <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+                <strong>Or describe what you want:</strong>
                 <div style="margin-top: 0.75rem;">
-                  <input id="clarInput" type="text" placeholder="Enter your question differently" style="margin-bottom: 0.75rem;" />
-                  <button id="clarBtn" class="btn-primary">Submit</button>
+                  <input id="clarInput" type="text" placeholder="Type your question here..." style="margin-bottom: 0.75rem; width: 100%;" />
+                  <button id="clarBtn" class="btn-primary" style="width: 100%;">Submit</button>
                 </div>
               </div>
             </div>
           </div>
         `;
       } else {
-        // Show yes/no confirmation
+        // Show hybrid: interpretation + custom input (no yes/no buttons)
         modalContent = `
           <div class="clarification-overlay">
             <div class="clarification-modal">
-              <div class="modal-title">🤔 Need Clarification</div>
+              <div class="modal-title">❓ Your query needs clarification</div>
+              <div style="background: var(--bg-secondary); padding: 0.75rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem; font-size: 0.9rem;">
+                "${lastQuestion}"
+              </div>
+              ${interpretation ? `
+                <div style="margin-bottom: 1.5rem;">
+                  <strong>I understand this as:</strong>
+                  <div class="interpretation-box">${interpretation}</div>
+                </div>
+              ` : ''}
               <div>
-                <strong>I understand your question as:</strong>
-                <div class="interpretation-box">${interpretation}</div>
-              </div>
-              <div class="modal-question">${question}</div>
-              <div class="modal-actions">
-                <button id="clarYes" class="btn-success">
-                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/>
-                  </svg>
-                  Yes, that's correct
-                </button>
-                <button id="clarNo" class="btn-danger">
-                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
-                  </svg>
-                  No, let me rephrase
-                </button>
-              </div>
-              <div id="clarRetry" style="display:none; margin-top: 1.5rem;">
-                <strong>Please rephrase your question:</strong>
+                <strong>${question || 'What specific information are you looking for?'}</strong>
                 <div style="margin-top: 0.75rem;">
-                  <input id="clarInput" type="text" placeholder="Enter your question differently" style="margin-bottom: 0.75rem;" />
-                  <button id="clarBtn" class="btn-primary">Submit</button>
+                  <input id="clarInput" type="text" placeholder="Please clarify or rephrase your question..." style="margin-bottom: 0.75rem; width: 100%;" />
+                  <div style="display: flex; gap: 0.5rem;">
+                    <button id="clarBtn" class="btn-primary" style="flex: 1;">Submit</button>
+                    <button id="clarCancel" class="btn-secondary" style="flex: 0 0 auto;">Cancel</button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1491,23 +1658,17 @@
             const selectedText = options[parseInt(optionIdx)];
             btn.disabled = true;
             clarifyModal.style.display = 'none';
+            // Update the query box with the selected suggestion
+            qEl.value = selectedText;
             // Send the specific choice as clarification
-            await run(lastQuestion, `Option ${parseInt(optionIdx) + 1}: ${selectedText}`);
+            await run(selectedText, `Option ${parseInt(optionIdx) + 1}: ${selectedText}`);
           };
         });
         
-        const clarCustom = document.getElementById('clarCustom');
-        const clarRetry = document.getElementById('clarRetry');
-        if (clarCustom && clarRetry) {
-          clarCustom.onclick = () => {
-            clarCustom.disabled = true;
-            clarRetry.style.display = 'block';
-            const clarInput = document.getElementById('clarInput');
-            clarInput.focus();
-          };
-          
-          const clarInput = document.getElementById('clarInput');
-          const clarBtn = document.getElementById('clarBtn');
+        // Handle custom input when options are available
+        const clarInput = document.getElementById('clarInput');
+        const clarBtn = document.getElementById('clarBtn');
+        if (clarInput && clarBtn) {
           const handler = async () => {
             const ans = clarInput.value.trim();
             if (!ans) return;
@@ -1520,29 +1681,12 @@
           clarInput.onkeydown = (e) => { if (e.key === 'Enter') handler(); };
         }
       } else {
-        // Handle yes/no buttons
-        const clarYes = document.getElementById('clarYes');
-        const clarNo = document.getElementById('clarNo');
-        const clarRetry = document.getElementById('clarRetry');
-
-        if (clarYes) {
-          clarYes.onclick = async () => {
-            clarYes.disabled = true;
-            clarifyModal.style.display = 'none';
-            await run(lastQuestion, 'yes');
-          };
-        }
-
-        if (clarNo && clarRetry) {
-          clarNo.onclick = () => {
-            clarNo.disabled = true;
-            clarRetry.style.display = 'block';
-            const clarInput = document.getElementById('clarInput');
-            clarInput.focus();
-          };
-
-          const clarInput = document.getElementById('clarInput');
-          const clarBtn = document.getElementById('clarBtn');
+        // Handle input-only mode (no options)
+        const clarInput = document.getElementById('clarInput');
+        const clarBtn = document.getElementById('clarBtn');
+        const clarCancel = document.getElementById('clarCancel');
+        
+        if (clarInput && clarBtn) {
           const handler = async () => {
             const ans = clarInput.value.trim();
             if (!ans) return;
@@ -1553,6 +1697,13 @@
           };
           clarBtn.onclick = handler;
           clarInput.onkeydown = (e) => { if (e.key === 'Enter') handler(); };
+          clarInput.focus();
+        }
+        
+        if (clarCancel) {
+          clarCancel.onclick = () => {
+            clarifyModal.style.display = 'none';
+          };
         }
       }
     }
@@ -1573,7 +1724,106 @@
         }
         
         clarifyModal.style.display = 'none';
-        renderChart(out.chart_html_base64);
+        // Show confidence/disclaimer if exploratory query (ensure single banner)
+        const existingBanner = document.getElementById('confidenceBanner');
+        if (existingBanner) existingBanner.remove();
+        if (out.confidence_level && out.confidence_level < 0.8) {
+          const confidenceMsg = `⚠️ Exploratory Query (${Math.round(out.confidence_level * 100)}% confidence) - Results may not be exactly as expected. You can refine your question for better results.`;
+          const confidenceDiv = document.createElement('div');
+          confidenceDiv.id = 'confidenceBanner';
+          confidenceDiv.style.cssText = 'background: var(--warning); color: #333; padding: 0.75rem 1rem; border-radius: var(--radius-md); margin-bottom: 1rem; font-size: 0.9rem; border-left: 4px solid #ff9800;';
+          confidenceDiv.textContent = confidenceMsg;
+          chartBox.parentNode.insertBefore(confidenceDiv, chartBox);
+        }
+        const rendered = renderChartFromRows(out.rows, out.intent, out.chart_type);
+        if (!rendered) {
+          renderChart(out.chart_html_base64);
+        }
+        
+        // Store original data for filtering
+        const filterDimension = getFilterDimension(out.rows, out.intent);
+        window.currentQueryData = {
+          rows: out.rows,
+          groupBy: filterDimension,
+          chartType: out.chart_type,
+          metric: out.intent?.metric
+        };
+        
+        // Remove any previous semantic filter before adding a new one
+        const existingFilter = document.getElementById('semanticFilterContainer');
+        if (existingFilter) existingFilter.remove();
+
+        // Add semantic filter if applicable (x-axis aligned)
+        const filterInfo = createSemanticFilter(out.rows, filterDimension);
+        if (filterInfo) {
+          const filterContainer = document.createElement('div');
+          filterContainer.innerHTML = filterInfo.html;
+          dataBox.parentNode.insertBefore(filterContainer, dataBox);
+          
+          // Set up filter event listeners
+          const checkboxes = filterContainer.querySelectorAll('.filter-checkbox');
+          const searchInput = filterContainer.querySelector(`input[id^="filter_"]`);
+          const filterCol = filterInfo.filterCol;
+          const filterCount = filterContainer.querySelector(`#filterCount_${filterCol}`);
+          const selectAllBtn = filterContainer.querySelector(`#selectAll_${filterCol}`);
+          const clearAllBtn = filterContainer.querySelector(`#clearAll_${filterCol}`);
+          
+          const updateFilterCount = () => {
+            const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+            filterCount.textContent = `${checkedCount} of ${filterInfo.values.length}`;
+          };
+          
+          const applyFilter = () => {
+            const selectedValues = Array.from(checkboxes)
+              .filter(cb => cb.checked)
+              .map(cb => cb.value);
+
+            // Filter rows based only on checkbox selections (not search)
+            const filtered = selectedValues.length === 0
+              ? []
+              : out.rows.filter(r => selectedValues.includes(r[filterCol]));
+
+            console.log('[FILTER] Applying filter:', {
+              filterCol,
+              selectedCount: selectedValues.length,
+              totalValues: filterInfo.values.length,
+              filteredRows: filtered.length,
+              originalRows: out.rows.length
+            });
+
+            renderRows(filtered);
+            updateFilterCount();
+
+            // Update chart from filtered rows
+            const chartOk = renderChartFromRows(filtered, out.intent, out.chart_type);
+            if (!chartOk) {
+              renderChart(out.chart_html_base64);
+            }
+          };
+          
+          // Select/Clear All buttons
+          selectAllBtn.onclick = () => {
+            checkboxes.forEach(cb => cb.checked = true);
+            applyFilter();
+          };
+          
+          clearAllBtn.onclick = () => {
+            checkboxes.forEach(cb => cb.checked = false);
+            applyFilter();
+          };
+          
+          checkboxes.forEach(cb => cb.addEventListener('change', applyFilter));
+          searchInput.addEventListener('input', () => {
+            // Filter visible checkboxes based on search
+            const searchTerm = searchInput.value.toLowerCase();
+            checkboxes.forEach(cb => {
+              const label = cb.parentElement;
+              const text = cb.value.toLowerCase();
+              label.style.display = text.includes(searchTerm) ? 'flex' : 'none';
+            });
+          });
+        }
+        
         renderRows(out.rows);
         renderCalcSteps(out.calc_steps);
         renderInsights(out.insights);
@@ -1607,15 +1857,12 @@
     });
     
     // Load database info and samples on page load
-    console.log('About to load database info and sample queries...');
-    try {
-      loadDatabaseInfo();
-      loadDateLimits();
-      loadSampleQueries();
-      console.log('Functions called successfully');
-    } catch(e) {
-      console.error('Error calling functions:', e);
-    }
+    console.log('[DEBUG] About to load database info and sample queries...');
+    
+    // Call all functions immediately (don't await)
+    loadDateLimits().catch(e => console.error('[DEBUG] loadDateLimits error:', e));
+    loadDatabaseInfo().catch(e => console.error('[DEBUG] loadDatabaseInfo error:', e));
+    loadSampleQueries().catch(e => console.error('[DEBUG] loadSampleQueries error:', e));
   </script>
 </body>
 </html>
