@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Deploy to Lightsail
+      - name: Deploy to Lightsail via Docker
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.LIGHTSAIL_HOST }}
@@ -18,9 +18,29 @@ jobs:
           key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
           port: 22
           script: |
+            set -e
+            echo "Starting deployment..."
             cd /home/ubuntu/report-middleware
-            git pull origin main
-            source .venv/bin/activate || . .venv/bin/activate
-            pip install -q -r requirements.txt
-            # Restart the service (adjust based on your setup)
-            sudo systemctl restart reporting-middleware || supervisorctl restart reporting-middleware || pkill -f "uvicorn webapp.server:app" && nohup python -m uvicorn webapp.server:app --host 0.0.0.0 --port 8003 > /dev/null 2>&1 &
+            
+            # Pull latest code
+            echo "Pulling latest code from main..."
+            git fetch origin
+            git reset --hard origin/main
+            
+            # Stop and remove old containers
+            echo "Stopping old Docker containers..."
+            docker-compose down || true
+            
+            # Rebuild and start new containers with latest code
+            echo "Building and starting Docker containers..."
+            docker-compose up -d --build
+            
+            # Wait for container to be healthy
+            echo "Waiting for application to be healthy..."
+            sleep 5
+            
+            # Verify deployment
+            echo "Checking container status..."
+            docker ps --filter "name=report-middleware" --format "table {{.Names}}\t{{.Status}}"
+            
+            echo "Deployment complete!"
