@@ -30,8 +30,9 @@ build/
 *.md
 !README.md
 
-# Database (will be regenerated in container)
+# Database (allow main demo DB)
 *.db
+!enhanced_sales.db
 *.sqlite
 *.sqlite3
 
