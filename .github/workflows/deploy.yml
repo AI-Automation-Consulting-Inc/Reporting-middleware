@@ -27,6 +27,7 @@ jobs:
             git reset --hard origin/main
 
             echo "Stopping old Docker containers..."
+            docker rm -f report-middleware || true
             docker-compose down || true
 
             echo "Building and starting Docker containers with latest code..."
