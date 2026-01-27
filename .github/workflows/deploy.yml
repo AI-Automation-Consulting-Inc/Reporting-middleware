@@ -8,43 +8,55 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Deploy to Lightsail via Docker
-        uses: appleboy/ssh-action@v1.0.0
+        uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.LIGHTSAIL_HOST }}
           username: ubuntu
           key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
           port: 22
           script: |
+            #!/bin/bash
             set -e
-            echo "Starting deployment..."
+
+            echo "=========================================="
+            echo "Starting Lightsail Deployment"
+            echo "=========================================="
+
             cd /home/ubuntu/report-middleware
-            
-            # Pull latest code
-            echo "Pulling latest code from main..."
+
+            # Ensure GitHub host key is trusted for private repo access
+            mkdir -p ~/.ssh
+            ssh-keyscan -H github.com >> ~/.ssh/known_hosts 2>/dev/null || true
+
+            # Configure git identity for logs
+            git config --global user.email "deploy@github.com"
+            git config --global user.name "GitHub Actions Deploy"
+
+            echo "[1/5] Cleaning repository state..."
+            git reset --hard HEAD
+            git clean -fd
+
+            echo "[2/5] Pulling latest code from main..."
             git fetch origin main
             git reset --hard origin/main
-            echo "✓ Code pulled successfully"
-            
-            # Stop and remove old containers
-            echo "Stopping old Docker containers..."
+            git log --oneline -1
+
+            echo "[3/5] Stopping old Docker containers..."
             docker-compose down || true
-            echo "✓ Old containers stopped"
-            
-            # Rebuild and start new containers with latest code
-            echo "Building and starting Docker containers with latest code..."
+
+            echo "[4/5] Building and starting Docker containers..."
             docker-compose up -d --build
-            echo "✓ Docker containers started"
-            
-            # Wait for container to stabilize
-            echo "Waiting 10 seconds for application to stabilize..."
+
+            echo "[5/5] Waiting for application to stabilize..."
             sleep 10
-            
-            # Verify deployment
-            echo "✓ Deployment complete! Container status:"
+
+            echo "=========================================="
+            echo "Deployment Status:"
+            echo "=========================================="
             docker ps --filter "name=report-middleware"
-            docker ps --filter "name=report-middleware" --format "table {{.Names}}\t{{.Status}}"
-            
-            echo "Deployment complete!"
+
+            echo ""
+            echo "✓ Deployment complete!"
