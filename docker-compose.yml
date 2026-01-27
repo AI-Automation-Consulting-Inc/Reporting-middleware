@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     container_name: report-middleware
     ports:
-      - "8000:8000"
+      - "8003:8000"
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_INTENT_MODEL=${OPENAI_INTENT_MODEL:-gpt-4o-mini}
@@ -19,7 +19,7 @@ services:
       - ./config_store:/app/config_store
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/', timeout=5)"]
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/api/date-limits', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3
