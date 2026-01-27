@@ -11,52 +11,29 @@ jobs:
 
     steps:
       - name: Deploy to Lightsail via Docker
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.LIGHTSAIL_HOST }}
           username: ubuntu
           key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
           port: 22
           script: |
-            #!/bin/bash
             set -e
-
-            echo "=========================================="
-            echo "Starting Lightsail Deployment"
-            echo "=========================================="
-
+            echo "Starting deployment..."
             cd /home/ubuntu/report-middleware
 
-            # Ensure GitHub host key is trusted for private repo access
-            mkdir -p ~/.ssh
-            ssh-keyscan -H github.com >> ~/.ssh/known_hosts 2>/dev/null || true
-
-            # Configure git identity for logs
-            git config --global user.email "deploy@github.com"
-            git config --global user.name "GitHub Actions Deploy"
-
-            echo "[1/5] Cleaning repository state..."
-            git reset --hard HEAD
-            git clean -fd
-
-            echo "[2/5] Pulling latest code from main..."
+            echo "Pulling latest code from main..."
             git fetch origin main
             git reset --hard origin/main
-            git log --oneline -1
 
-            echo "[3/5] Stopping old Docker containers..."
+            echo "Stopping old Docker containers..."
             docker-compose down || true
 
-            echo "[4/5] Building and starting Docker containers..."
+            echo "Building and starting Docker containers with latest code..."
             docker-compose up -d --build
 
-            echo "[5/5] Waiting for application to stabilize..."
+            echo "Waiting 10 seconds for application to stabilize..."
             sleep 10
 
-            echo "=========================================="
-            echo "Deployment Status:"
-            echo "=========================================="
-            docker ps --filter "name=report-middleware"
-
-            echo ""
-            echo "✓ Deployment complete!"
+            echo "Deployment complete! Container status:"
+            docker ps --filter "name=report-middleware" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
