@@ -907,9 +907,9 @@
         </h1>
         <div class="header-subtitle">Reporting Middleware Demo - Natural Language SQL Engine</div>
       </div>
-      <div class="deploy-chip">
+      <div class="deploy-chip" id="deployChip">
         🚀 Live · Docker build
-        <small>Latest push deployed</small>
+        <small id="commitRef">Commit: loading...</small>
       </div>
     </div>
   </header>
@@ -1877,6 +1877,19 @@
     // Load database info and samples on page load
     console.log('[DEBUG] About to load database info and sample queries...');
     
+    // Show commit hash for quick deployment verification
+    fetch('https://api.github.com/repos/AI-Automation-Consulting-Inc/Reporting-middleware/commits/main')
+      .then(res => res.json())
+      .then(data => {
+        const shortSha = (data && data.sha) ? data.sha.slice(0, 7) : 'unknown';
+        const el = document.getElementById('commitRef');
+        if (el) el.textContent = `Commit: ${shortSha}`;
+      })
+      .catch(() => {
+        const el = document.getElementById('commitRef');
+        if (el) el.textContent = 'Commit: unknown';
+      });
+
     // Call all functions immediately (don't await)
     loadDateLimits().catch(e => console.error('[DEBUG] loadDateLimits error:', e));
     loadDatabaseInfo().catch(e => console.error('[DEBUG] loadDatabaseInfo error:', e));
